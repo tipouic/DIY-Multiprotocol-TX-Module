@@ -66,7 +66,7 @@ static uint8_t packets_to_check;  // BIND_RX phase needs to receive/auto-ack mor
 static uint8_t packets_to_send;   // Number of packets to send / check for in current bind phase
 static uint8_t bind_step_success; // Indicates successfull transmission / receive of bind reply during current bind phase
 static uint8_t tx_id[3];
-static uint8_t rx_id[3];
+//static uint8_t rx_id[3];
 static uint8_t randoms[3];         // 3 random bytes choosen by TX, sent in BIND packets. Lower nibble of first byte sets index in RF CH table to use for BIND2
 
 

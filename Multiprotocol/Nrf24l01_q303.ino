@@ -15,6 +15,7 @@
 
 static uint8_t tx_addr[5];
 static uint8_t current_chan;
+int slider;
 
 enum {
     Q303_BIND,
@@ -35,13 +36,14 @@ enum {
 #define Q303_FLAG_SNAPSHOT  0x10
 #define Q303_FLAG_VIDEO     0x01
 
-static u8 cx35_lastButton()
+static uint8_t cx35_lastButton()
 {
 	#define CX35_BTN_TAKEOFF  1
 	#define CX35_BTN_DESCEND  2
 	#define CX35_BTN_SNAPSHOT 4
 	#define CX35_BTN_VIDEO    8
 	#define CX35_BTN_RTH      16
+	#define CX35_BTN_VTX      32
 	
     #define CX35_CMD_RATE     0x09
 	#define CX35_CMD_TAKEOFF  0x0e
@@ -49,47 +51,49 @@ static u8 cx35_lastButton()
 	#define CX35_CMD_SNAPSHOT 0x0b
 	#define CX35_CMD_VIDEO    0x0c
 	#define CX35_CMD_RTH      0x11
+	#define CX35_CMD_VTX      0x10
 	
     static uint8_t cx35_btn_state;
-    static uint8_t command;
+    static uint8_t command, vtx_channel;
     // simulate 2 keypress on rate button just after bind
-    if(packet_counter < 50) {
+    if(packet_count < 50) {
         cx35_btn_state = 0;
-        packet_counter++;
+		vtx_channel = 0;
+        packet_count++;
         command = 0x00; // startup
     }
-    else if(packet_counter < 150) {
-        packet_counter++;
+    else if(packet_count < 150) {
+        packet_count++;
         command = CX35_CMD_RATE; // 1st keypress
     }
-    else if(packet_counter < 250) {
-        packet_counter++;
+    else if(packet_count < 250) {
+        packet_count++;
         command |= 0x20; // 2nd keypress
     }
     
-    // descend
-    else if(!(GET_FLAG(CHANNEL_ARM, 1)) && !(cx35_btn_state & CX35_BTN_DESCEND)) {
+    // descend	ARM
+    else if(!(GET_FLAG(Servo_AUX1, 1)) && !(cx35_btn_state & CX35_BTN_DESCEND)) {
         cx35_btn_state |= CX35_BTN_DESCEND;
         cx35_btn_state &= ~CX35_BTN_TAKEOFF;
         command = CX35_CMD_DESCEND;
     }
         
     // take off
-    else if(GET_FLAG(CHANNEL_ARM,1) && !(cx35_btn_state & CX35_BTN_TAKEOFF)) {
+    else if(GET_FLAG(Servo_AUX1,1) && !(cx35_btn_state & CX35_BTN_TAKEOFF)) {
         cx35_btn_state |= CX35_BTN_TAKEOFF;
         cx35_btn_state &= ~CX35_BTN_DESCEND;
         command = CX35_CMD_TAKEOFF;
     }
     
     // RTH
-    else if(GET_FLAG(CHANNEL_RTH,1) && !(cx35_btn_state & CX35_BTN_RTH)) {
+    else if(GET_FLAG(Servo_AUX6,1) && !(cx35_btn_state & CX35_BTN_RTH)) {
         cx35_btn_state |= CX35_BTN_RTH;
         if(command == CX35_CMD_RTH)
             command |= 0x20;
         else
             command = CX35_CMD_RTH;
     }
-    else if(!(GET_FLAG(CHANNEL_RTH,1)) && (cx35_btn_state & CX35_BTN_RTH)) {
+    else if(!(GET_FLAG(Servo_AUX6,1)) && (cx35_btn_state & CX35_BTN_RTH)) {
         cx35_btn_state &= ~CX35_BTN_RTH;
         if(command == CX35_CMD_RTH)
             command |= 0x20;
@@ -98,14 +102,14 @@ static u8 cx35_lastButton()
     }
     
     // video
-    else if(GET_FLAG(CHANNEL_VIDEO,1) && !(cx35_btn_state & CX35_BTN_VIDEO)) {
+    else if(GET_FLAG(Servo_AUX4,1) && !(cx35_btn_state & CX35_BTN_VIDEO)) {
         cx35_btn_state |= CX35_BTN_VIDEO;
         if(command == CX35_CMD_VIDEO)
             command |= 0x20;
         else
             command = CX35_CMD_VIDEO;
     }
-    else if(!(GET_FLAG(CHANNEL_VIDEO,1)) && (cx35_btn_state & CX35_BTN_VIDEO)) {
+    else if(!(GET_FLAG(Servo_AUX4,1)) && (cx35_btn_state & CX35_BTN_VIDEO)) {
         cx35_btn_state &= ~CX35_BTN_VIDEO;
         if(command == CX35_CMD_VIDEO)
             command |= 0x20;
@@ -114,7 +118,7 @@ static u8 cx35_lastButton()
     }
     
     // snapshot
-    else if(GET_FLAG(CHANNEL_SNAPSHOT,1) && !(cx35_btn_state & CX35_BTN_SNAPSHOT)) {
+    else if(GET_FLAG(Servo_AUX3,1) && !(cx35_btn_state & CX35_BTN_SNAPSHOT)) {
         cx35_btn_state |= CX35_BTN_SNAPSHOT;
         if(command == CX35_CMD_SNAPSHOT)
             command |= 0x20;
@@ -122,8 +126,21 @@ static u8 cx35_lastButton()
             command = CX35_CMD_SNAPSHOT;
     }
     
-    if(!(GET_FLAG(CHANNEL_SNAPSHOT,1)))
+	// vtx channel
+	else if(GET_FLAG(Servo_AUX2,1) && !(cx35_btn_state & CX35_BTN_VTX)) {
+		cx35_btn_state |= CX35_BTN_VTX;
+		vtx_channel++;
+//		MUSIC_Play(MUSIC_BEEP_1X + (vtx_channel & 7));
+		if(command == CX35_CMD_VTX)
+			command |= 0x20;
+		else
+			command = CX35_CMD_VTX;
+	}
+	
+	if(!(GET_FLAG(Servo_AUX3,1)))
         cx35_btn_state &= ~CX35_BTN_SNAPSHOT;
+	if(!(GET_FLAG(Servo_AUX2,1)))
+		cx35_btn_state &= ~CX35_BTN_VTX;
     
     return command;
 }
@@ -132,7 +149,7 @@ static void send_packet(uint8_t bind)
 {
 	if(bind) {
 		packet[0] = 0xaa;
-		memcpy(&packet[1], txid, 4);
+		memcpy(&packet[1], rx_tx_addr, 4);
 		memset(&packet[5], 0, 5);
 	}
 	else {
@@ -140,6 +157,8 @@ static void send_packet(uint8_t bind)
 		elevator = 1000 - 	map(Servo_data[ELEVATOR],	1000, 2000, 1000, 0);
 		throttle = 			map(Servo_data[THROTTLE],	1000, 2000, 0, 1000);
 		rudder   = 		 	map(Servo_data[RUDDER],		1000, 2000, 0, 1000);
+		if(sub_protocol == FORMAT_CX35)
+			aileron = 1000 - aileron;
 
 		packet[0] = 0x55;
 		packet[1] = aileron >> 2     ;     // 8 bits
@@ -181,7 +200,7 @@ static void send_packet(uint8_t bind)
 	}
 
 	// Power on, TX mode, CRC enabled
-    XN297_Configure(BV(NRF24L01_00_EN_CRC) | BV(NRF24L01_00_CRCO) | BV(NRF24L01_00_PWR_UP));
+    XN297_Configure(_BV(NRF24L01_00_EN_CRC) | _BV(NRF24L01_00_CRCO) | _BV(NRF24L01_00_PWR_UP));
 
     NRF24L01_WriteReg(NRF24L01_05_RF_CH, bind ? Q303_RF_BIND_CHANNEL : hopping_frequency[current_chan++]);
     current_chan %= Q303_NUM_RF_CHANNELS;
@@ -190,16 +209,8 @@ static void send_packet(uint8_t bind)
     NRF24L01_FlushTx();
 
     XN297_WritePayload(packet, Q303_PACKET_SIZE);
-
-    // Check and adjust transmission power. We do this after
-    // transmission to not bother with timeout after power
-    // settings change -  we have plenty of time until next
-    // packet.
-    if (tx_power != Model.tx_power) {
-        //Keep transmit power updated
-        tx_power = Model.tx_power;
-        NRF24L01_SetPower(tx_power);
-    }
+	
+	NRF24L01_SetPower();
 }
 
 static uint16_t q303_callback()
@@ -208,10 +219,10 @@ static uint16_t q303_callback()
 		case Q303_BIND:
 			if (bind_counter == 0) {
 				tx_addr[0] = 0x55;
-				memcpy(&tx_addr[1], txid, 4);
+				memcpy(&tx_addr[1], rx_tx_addr, 4);
 				XN297_SetTXAddr(tx_addr, 5);
 				phase = Q303_DATA;
-				packet_counter = 0;
+				packet_count = 0;
 				BIND_DONE;
 			} else {
 				send_packet(1);
@@ -227,13 +238,13 @@ static uint16_t q303_callback()
 
 static uint16_t q303_init()
 {
-	offset = txid[0] & 3;
+	uint8_t offset = rx_tx_addr[0] & 3;
 	if(sub_protocol == FORMAT_CX35) {        
-		for(i=0; i<Q303_NUM_RF_CHANNELS; i++)
+		for(uint8_t i=0; i<Q303_NUM_RF_CHANNELS; i++)
 			hopping_frequency[i] = 0x14 + i*3 + offset;
 	}
 	else{ // Q303
-		for(i=0; i<Q303_NUM_RF_CHANNELS; i++)
+		for(uint8_t i=0; i<Q303_NUM_RF_CHANNELS; i++)
 			hopping_frequency[i] = 0x46 + i*2 + offset;
 	}
 
@@ -264,9 +275,9 @@ static uint16_t q303_init()
 	
 	BIND_IN_PROGRESS;
 	bind_counter = Q303_BIND_COUNT;
-    if(Model.proto_opts[PROTOOPTS_FORMAT] == FORMAT_Q303)
+    if(sub_protocol == FORMAT_Q303)
         packet_period = Q303_PACKET_PERIOD;
-    else if(Model.proto_opts[PROTOOPTS_FORMAT] == FORMAT_CX35)
+    else if(sub_protocol == FORMAT_CX35)
         packet_period = CX35_PACKET_PERIOD;
 	current_chan = 0;
 	phase = Q303_BIND;

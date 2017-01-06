@@ -26,56 +26,7 @@ Notes:
 ###OPENLRS
 Empty protocol
 
-##CYRF6936 RF Module
-###J6PRO
-CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12
----|---|---|---|---|---|---|---|---|---|---|---
-CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12
-
-###WK2x01
-Autobind
-
-####Sub_protocol WK2401
-CH1|CH2|CH3|CH4
----|---|---|---
-CH1|CH2|CH3|CH4
-
-
-####Sub_protocol WK2601
-Option:	
-
-		0 = 5+1
-		2 = 6+1
-		..1 = Hélicoptère (. = autres options pour ce mode)
-		.01 = Hélicoptère normal
-		.11 = Hélicoptère avec pit inversé
-		0.1 = Pitch curve -100
-		1.1 = Pitch curve 100
-
-CH1|CH2|CH3|CH4|CH5|CH6|CH7
----|---|---|---|---|---|---
-CH1|CH2|CH3|CH4|???|CONF|Gyro & Rudder mix
-
-CONF:	Option 1 = Rate Throtle
-
-		Option 2 = Pitch
-		
-
-####Sub_protocol WK2801
-CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
----|---|---|---|---|---|---|---
-CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
-
-
 ##A7105 RF Module
-###Flysky AFHDS2A
-Telemetry enabled for battery voltage and TX RSSI
-Option= 0-PWM_IBUS 1-PPM_IBUS 2-PWM_SBUS 3-PPM_SBUS
-
-CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12|CH13|CH14|CH15
----|---|---|---|---|---|---|---|---|---|---|---|---|---|---
-T|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12|CH13|CH14|Failsave T
-
 ###HUBSAN
 Models: Hubsan H102D, H107/L/C/D and Hubsan H107P/C+/D+
 
@@ -110,34 +61,6 @@ CH1|CH2|CH3|CH4|CH5|CH6|CH7
  ? | ? | ? | ? | ? | ? | ? 
 
 ##NRF24L01 RF Module
-###BAYANG
-####Sub_protocol Normal
-Models: EAchine H8(C) mini, BayangToys X6/X7/X9, JJRC JJ850, Floureon H101 ...
-
-Autobind protocol
-
-CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10
----|---|---|---|---|---|---|---|---|----
-A|E|T|R|FLIP|RTH|PICTURE|VIDEO|HEADLESS|INVERTED
-
-####Sub_protocol Telemetry
-Add telemetry for https://github.com/bikemike/H101-acro/tree/telemetry
-CH11|CH12|CH13
----|---|---
-Data Select|Data adjust|FlightMode
-
-Data select : 5 steps(use a POT for this)
-	- min =previous data set
-	- low = first item in data set
-	- mid = second item in data set
-	- high= third item in data set
-	- max = next data set
-Data adjust : 3 steps
-	- min=decrease current data value
-	- mid=neutral
-	- max=increase current data value
-Flight Mode : 4 steps
-
 ###BLUEFLY
 Autobind
 
@@ -153,22 +76,6 @@ Autobind
 CH1|CH2|CH3|CH4
 ---|---|---|---
 A|E|T|R
-
-###CG023
-####Sub_protocol H8_3D
-Models: EAchine H8 mini 3D, JJRC H20/H22, JJRC H11D
-
-CH5|CH6|CH7|CH8|CH9|CH10|CH11
----|---|---|---|---|---|---
-FLIP|LIGTH|OPT1|OPT2|CAL|SNAPSHOT|VIDEO
-
-JJRC H20: OPT1=Headless, OPT2=RTH
-
-JJRC H22: OPT1=RTH, OPT2=180/360° flip mode
-
-H8 3D: OPT1=RTH then press a direction to enter headless mode (like stock TX), OPT2=switch 180/360° flip mode
-
-CAL: calibrate accelerometers
 
 ###ESKY150
 
@@ -188,23 +95,10 @@ CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
 ####Sub_protocol HP100
 Same channels assignement as above.
 
-###Fy326
-Autobind
-
-CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9
----|---|---|---|---|---|---|---|---
-A|E|T|R|FLIP|HEADLESS|RTH|Calibrate|Expert
-
-####Sub_protocol FY319
-Same channels assignement as above.
-
 ###H377
 CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
 ---|---|---|---|---|---|---|---
 A|E|T|R|CH5|CH6|CH7|CH8
-
-###HISKY
-####Sub_protocol HK310
 
 ###HM830
 Modele: HM Hobby HM830 RC Paper Airplane
@@ -215,36 +109,8 @@ CH1|CH2|CH3|CH4|CH5
 ---|---|---|---
 A|Turbo|T|Trim|Bouton
 
-###HONTAI
-Autobind protocol
-
-CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11
----|---|---|---|---|---|---|---|---|----|----
-A|E|T|R|FLIP|LED|PICTURE|VIDEO|HEADLESS|RTH|CAL
-
-####Sub_protocol HONTAI
-####Sub_protocol JJRCX1
-CH6|
----|
-ARM|
-
-####Sub_protocol X5C1
-X5C1 clone
-CH5|CH6|CH7|CH8|CH9|CH10|CH11
----|---|---|---|---|----|----
-FLIP|LED|PICTURE|VIDEO|HEADLESS|RTH|CAL
-####Sub_protocol FQ777
-Format FQ777-951C
-
-CH6|CH7|CH8|CH9
----|---|---|---
-FLIP|SNAPSHOT|VIDEO|HEADLESS
-
 ###INAV
 En cours de passage
-
-###MJX
-####Sub_protocol H26WH
 
 ###NE260
 Modele: Nine Eagles SoloPro
@@ -291,21 +157,5 @@ A|E|T|R|FLIP 360|FLIP|VIDEO|LED|MODE 2
 ####Sub_protocol U816_V2 (red)
 ####Sub_protocol U839_2014
 Same channels assignement as above.
-
-###V2X2
-####Sub_protocol V2X2
-Models: WLToys V202/252/272, JXD 385/388, JJRC H6C, Yizhan Tarantula X6 ...
-
-CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11
----|---|---|---|---|---|---|---|---|----|----
-A|E|T|R|FLIP|LIGHT|PICTURE|VIDEO|HEADLESS|MAG_CAL_X|MAG_CAL_Y
-
-PICTURE: also automatic Missile Launcher and Hoist in one direction
-
-VIDEO: also Sprayer, Bubbler, Missile Launcher(1), and Hoist in the other dir
-####Sub_protocol JXD-506
-CH10|CH11|CH12
-----|----|----
-ARM|EMERGENCY|PAN CAMERA
 
 ###D'autres à venir

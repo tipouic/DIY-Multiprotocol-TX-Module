@@ -40,9 +40,11 @@
 //#define REVERSE_THROTTLE
 //#define REVERSE_RUDDER
 
-//Modify the channel for a software reset modul: AUX...(channel number - 4)
-//Default is AUX10 (channel 14).
-#define SWITCH_RESET 14
+//Comment to disable the bind feature on a channel
+#define ENABLE_BIND_CH
+//Set the channel number used for bind. Default is 16.
+#define BIND_CH	16
+
 
 /**************************/
 /*** RF CHIPS INSTALLED ***/
@@ -71,11 +73,10 @@
 	#define	HUBSAN_A7105_INO
 	#define	AFHDS2A_A7105_INO
 //The protocols below need a CYRF6936 to be installed
-//	#define	WK2x01_CYRF6936_INO //!\\			//pb voie
-	
 	#define	DEVO_CYRF6936_INO
 	#define	DSM_CYRF6936_INO
 //	#define	J6PRO_CYRF6936_INO
+//	#define	WK2x01_CYRF6936_INO
 
 //The protocols below need a CC2500 to be installed
 	#define	SKYARTEC_CC2500_INO
@@ -124,9 +125,13 @@
 //If you do not plan using the telemetry comment this global setting using "//" and skip to the next section.
 #define TELEMETRY
 
-//Uncomment to invert the polarity of the telemetry serial signal.
-//For ER9X and ERSKY9X it must be commented. For OpenTX it must be uncommented.
-//#define INVERT_TELEMETRY
+//Comment to invert the polarity of the output telemetry serial signal.
+//This function takes quite some flash space and processor power on an atmega.
+//For OpenTX and ersky9x it must be uncommented.
+//On a 9XR_PRO running ersky9x both commented and uncommented will work depending on the radio setting Invert COM1 under the Telemetry menu.
+//On other addon/replacement boards like the 9xtreme board or the Ar9x board, you need to uncomment the line below.
+//For er9x it depends if you have an inveter mod or not on the telemetry pin. If you don't have an inverter comment this line.
+#define INVERT_TELEMETRY
 
 //Uncomment to send also Multi status and wrap other telemetry to allow TX to autodetect the format
 //Only for newest OpenTX version
@@ -157,7 +162,7 @@
 /******************************/
 //In this section you can configure the NUNCHUCK.
 //If you do not plan to use the NUNCHUCK mode comment this line using "//" to save Flash space, you don't need to configure anything below in this case
-#define ENABLE_NUNCHUCK
+//#define ENABLE_NUNCHUCK
 //	pont diviseur		VCC --------------- 240K ------------- analogRead(0) -------------- 75K ----------- GND
 #define VBAT_PIN 3 // for Tx adapters with battery
 #define VBAT_VAL 340 // for Tx adapters with battery (attention pont divisieur pour avoir 1,1V max ,~=3,404V)
@@ -327,6 +332,13 @@ const PPM_Parameters PPM_prot[15]=	{
 		PPM_IBUS
 		PWM_SBUS
 		PPM_SBUS
+	MODE_WK2X01
+		WK2801
+		WK2401
+		W6_5_1
+		W6_6_1
+		W6_HEL
+		W6_HEL_I
 */
 
 // RX_Num is used for model match. Using RX_Num	values different for each receiver will prevent starting a model with the false config loaded...
@@ -338,6 +350,7 @@ const PPM_Parameters PPM_prot[15]=	{
 // Auto Bind	AUTOBIND or NO_AUTOBIND
 // For protocols which does not require binding at each power up (like Flysky, FrSky...), you might still want a bind to be initiated each time you power up the TX.
 // As an example, it's usefull for the WLTOYS F929/F939/F949/F959 (all using the Flysky protocol) which requires a bind at each power up.
+// It also enables the Bind from channel feature, allowing to execute a bind by toggling a designated channel.
 
 // Option: the value is between -127 and +127.
 // The option value is only valid for some protocols, read this page for more information: https://github.com/pascallanger/DIY-Multiprotocol-TX-Module/blob/master/Protocols_Details.md

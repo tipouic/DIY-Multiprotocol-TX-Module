@@ -140,7 +140,7 @@ static uint16_t bluefly_cb() {
 }
 
 static uint16_t BlueFly_setup() {
-	MProtocol_id = (MProtocol_id |  ((uint32_t)txid[3]<<32));
+//	MProtocol_id = (MProtocol_id |  ((uint32_t)txid[3]<<32));
 	hopping_frequency_start = ((MProtocol_id >> 8) % 47) + 2; 
     bluefly_binding_packet();
 	bluefly_init();

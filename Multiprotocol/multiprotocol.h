@@ -17,9 +17,9 @@
 // Version
 //******************
 #define VERSION_MAJOR		1
-#define VERSION_MINOR			1
+#define VERSION_MINOR		1
 #define VERSION_REVISION	6
-#define VERSION_PATCH_LEVEL	3
+#define VERSION_PATCH_LEVEL	4
 
 //******************
 // Protocols				max 31 x2
@@ -27,7 +27,6 @@
 enum PROTOCOLS
 {
 	MODE_JOYSWAY	= 48,	// =>A7105
-	MODE_WK2x01 	= 49,	// =>CYRF6936
 	MODE_SKYARTEC	= 50,	// =>CC2500
 	
 	MODE_FBL100		= 59,	// =>NRF24L01
@@ -73,6 +72,7 @@ enum PROTOCOLS
 	MODE_OPENLRS	= 27,	// =>OpenLRS hardware
 	MODE_AFHDS2A	= 28,	// =>A7105
 	MODE_Q2X2		= 29,	// =>NRF24L01, extension of CX-10 protocol
+	MODE_WK2x01		= 30,	// =>CYRF6936
 };
 enum Flysky
 {
@@ -191,17 +191,21 @@ enum FY326
 	FY319	= 1,
 };
 
+enum WK2x01
+{
+	WK2801	= 0,
+	WK2401	= 1,
+	W6_5_1	= 2,
+	W6_6_1	= 3,
+	W6_HEL	= 4,
+	W6_HEL_I= 5,
+};
+
 enum HUBSAN
 {
 	H107	= 0,
 	H301	= 1,
 	H501	= 2
-};
-enum WK2X01
-{
-	WK2801	= 0,
-	WK2601	= 1,
-	WK2401	= 2
 };
 
 enum UDI
@@ -314,6 +318,11 @@ enum MultiPacketTypes {
 #define INPUT_SIGNAL_on		protocol_flags2 |= _BV(5)
 #define IS_INPUT_SIGNAL_on	( ( protocol_flags2 & _BV(5) ) !=0 )
 #define IS_INPUT_SIGNAL_off	( ( protocol_flags2 & _BV(5) ) ==0 )
+//CH16
+#define BIND_CH_PREV_off	protocol_flags2 &= ~_BV(6)
+#define BIND_CH_PREV_on		protocol_flags2 |= _BV(6)
+#define IS_BIND_CH_PREV_on	( ( protocol_flags2 & _BV(6) ) !=0 )
+#define IS_BIND_CH_PREV_off	( ( protocol_flags2 & _BV(6) ) ==0 )
 
 //********************
 //*** Blink timing ***
@@ -492,6 +501,7 @@ Serial: 100000 Baud 8e2      _ xxxx xxxx p --
 					OpenLRS		27
 					AFHDS2A		28
 					Q2X2		29
+					WK2x01		30
    BindBit=>		0x80	1=Bind/0=No
    AutoBindBit=>	0x40	1=Yes /0=No
    RangeCheck=>		0x20	1=Yes /0=No
@@ -579,6 +589,13 @@ Serial: 100000 Baud 8e2      _ xxxx xxxx p --
 		sub_protocol==FY326
 			FY326		0
 			FY319		1
+		sub_protocol==WK2x01
+			WK2801		0
+			WK2401		1
+			W6_5_1		2
+			W6_6_1		3
+			W6_HEL		4
+			W6_HEL_I	5
 
     Power value => 0x80	0=High/1=Low
   Stream[3]   = option_protocol;
@@ -623,9 +640,9 @@ Type = 0x01 Multimodule Status:
    0x08 = module is in binding mode
    [5] major
    [6] minor
-   [7-8] patchlevel
-   version of multi code, should be displayed as major.minor.patchlevel
-
+   [7] revision
+   [8] patchlevel,
+   version of multi code, should be displayed as major.minor.revision.patchlevel
 
    more information can be added by specifing a longer length of the type, the TX will just ignore these bytes
 

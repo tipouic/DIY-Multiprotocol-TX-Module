@@ -240,7 +240,7 @@ void setup()
 		PE2_output;
 		SERIAL_TX_output;
 
-	    //pullup on dial (D10=PB2,D11=PB3,D12=PB4) and bind button
+		// pullups
 		MODE_DIAL1_port |= _BV(MODE_DIAL1_pin);
 		MODE_DIAL2_port |= _BV(MODE_DIAL2_pin);
 		MODE_DIAL3_port |= _BV(MODE_DIAL3_pin);
@@ -298,7 +298,6 @@ void setup()
 	#elif defined STM32_BOARD
 		mode_select= 0x0F -(uint8_t)(((GPIOA->regs->IDR)>>4)&0x0F);
 	#else
-//		mode_select=0x0F - ( ( (PINB>>2)&0x07 ) | ( (PINC<<3)&0x08) );//encoder dip switches 1,2,4,8=>B2,B3,B4,C0
 		mode_select = 
 			((MODE_DIAL1_ipr & _BV(MODE_DIAL1_pin)) ? 0 : 1) + 
 			((MODE_DIAL2_ipr & _BV(MODE_DIAL2_pin)) ? 0 : 2) +
@@ -491,6 +490,21 @@ void Update_All()
 			last_signal=millis();
 		}
 	#endif //ENABLE_PPM
+	#ifdef ENABLE_BIND_CH
+		if(IS_AUTOBIND_FLAG_on && IS_BIND_CH_PREV_off && Servo_data[BIND_CH-1]>PPM_MAX_COMMAND && Servo_data[THROTTLE]<(servo_min_100+25))
+		{ // Autobind is on and BIND_CH went up and Throttle is low
+			CHANGE_PROTOCOL_FLAG_on;							//reload protocol to rebind
+			BIND_CH_PREV_on;
+		}
+		if(IS_BIND_CH_PREV_on && Servo_data[BIND_CH-1]<PPM_MIN_COMMAND)
+			BIND_CH_PREV_off;
+	#endif //ENABLE_BIND_CH
+	if(IS_CHANGE_PROTOCOL_FLAG_on)
+	{ // Protocol needs to be changed or relaunched for bind
+		LED_off;											//led off during protocol init
+		modules_reset();									//reset all modules
+		protocol_init();									//init new protocol
+	}
 	update_channels_aux();
 	#if defined(TELEMETRY)
 		#if !defined(MULTI_TELEMETRY)
@@ -522,13 +536,6 @@ static void update_channels_aux(void)
 	for(uint8_t i=0;i<8;i++)
 		if(Servo_data[AUX1+i]>PPM_SWITCH)
 			Servo_AUX|=1<<i;
-	if(Servo_data[SWITCH_RESET]>PPM_SWITCH && !( (cur_protocol[0]&0x1F)==MODE_FRSKYD || (cur_protocol[0]&0x1F)==MODE_DSM || (cur_protocol[0]&0x1F)==MODE_AFHDS2A ) ) { CHANGE_PROTOCOL_FLAG_on;	}	// Rebind voie
-	if(IS_CHANGE_PROTOCOL_FLAG_on)
-	{ // Protocol needs to be changed
-		LED_off;									//led off during protocol init
-		modules_reset();							//reset all modules
-		protocol_init();							//init new protocol
-	}
 }
 
 // Update led status based on binding and serial
@@ -627,6 +634,7 @@ static void protocol_init()
 {
 	uint16_t next_callback=0;		// Default is immediate call back
 	remote_callback = 0;
+	CHANGE_PROTOCOL_FLAG_off;
 
 	// reset telemetry
 	#ifdef TELEMETRY
@@ -732,13 +740,6 @@ static void protocol_init()
 			#endif
 		#endif
 		#ifdef CYRF6936_INSTALLED
-			#if defined(WK2x01_CYRF6936_INO)
-				case MODE_WK2x01:
-					next_callback=wk_setup();
-					remote_callback = wk_cb;
-					break;
-			#endif
-			
 			#if defined(DSM_CYRF6936_INO)
 				case MODE_DSM:
 					PE2_on;	//antenna RF4
@@ -767,6 +768,28 @@ static void protocol_init()
 					PE2_on;	//antenna RF4
 					next_callback = DevoInit();
 					remote_callback = devo_callback;
+					break;
+			#endif
+			#if defined(WK2x01_CYRF6936_INO)
+				case MODE_WK2x01:
+					#ifdef ENABLE_PPM
+						if(mode_select) //PPM mode
+						{
+							if(IS_BIND_BUTTON_FLAG_on)
+							{
+								eeprom_write_byte((EE_ADDR)(30+mode_select),0x00);	// reset to autobind mode for the current model
+								option=0;
+							}
+							else
+							{	
+								option=eeprom_read_byte((EE_ADDR)(30+mode_select));	// load previous mode: autobind or fixed id
+								if(option!=1) option=0;								// if not fixed id mode then it should be autobind
+							}
+						}
+					#endif //ENABLE_PPM
+					PE2_on;	//antenna RF4
+					next_callback = WK_setup();
+					remote_callback = WK_cb;
 					break;
 			#endif
 			#if defined(J6PRO_CYRF6936_INO)
@@ -1146,8 +1169,6 @@ static uint32_t random_id(uint16_t adress, uint8_t create_new)
 
 	if(eeprom_read_byte((EE_ADDR)(adress+10))==0xf0 && !create_new)
 	{  // TXID exists in EEPROM
-//		eeprom_read_block((void*)txid,(const void*)adress,nb_txid);
-//		id=(txid[0] | ((uint32_t)txid[1]<<8) | ((uint32_t)txid[2]<<16) | ((uint32_t)txid[3]<<24));
 		for(uint8_t i=4;i>0;i--)
 		{
 			id<<=8;
@@ -1157,14 +1178,13 @@ static uint32_t random_id(uint16_t adress, uint8_t create_new)
 			return id;
 	}
 	// Generate a random ID
-	id = random(0xfefefefe) + ((uint32_t)random(0xfefefefe) << 16);
-/*	txid[0]=  (id &0xFF);
-	txid[1] = ((id >> 8) & 0xFF);
-	txid[2] = ((id >> 16) & 0xFF);
-	txid[3] = ((id >> 24) & 0xFF);
-	eeprom_write_block((const void*)txid,(void*)adress,nb_txid);
-	eeprom_write_byte((uint8_t*)(adress+10),0xf0);//write bind flag in eeprom.
-*/
+	#if defined STM32_BOARD
+		#define STM32_UUID ((uint32_t *)0x1FFFF7E8)
+		if (!create_new)
+			id = STM32_UUID[0] ^ STM32_UUID[1] ^ STM32_UUID[2];
+	#else
+		id = random(0xfefefefe) + ((uint32_t)random(0xfefefefe) << 16);
+	#endif
 	for(uint8_t i=0;i<4;i++)
 	{
 		eeprom_write_byte((EE_ADDR)adress+i,id);
