@@ -19,8 +19,7 @@
 #define VERSION_MAJOR		1
 #define VERSION_MINOR		1
 #define VERSION_REVISION	6
-#define VERSION_PATCH_LEVEL	4
-
+#define VERSION_PATCH_LEVEL	12
 //******************
 // Protocols				max 31 x2
 //******************
@@ -40,7 +39,6 @@ enum PROTOCOLS
 	MODE_NE260		= 55,	// =>NRF24L01
 	
 	MODE_INAV		= 57,	// =>NRF24L01
-	MODE_Q303		= 58,	// =>NRF24L01
 	
 	MODE_SERIAL		= 0,	// Serial commands
 	MODE_FLYSKY 	= 1,	// =>A7105
@@ -73,6 +71,7 @@ enum PROTOCOLS
 	MODE_AFHDS2A	= 28,	// =>A7105
 	MODE_Q2X2		= 29,	// =>NRF24L01, extension of CX-10 protocol
 	MODE_WK2x01		= 30,	// =>CYRF6936
+	MODE_Q303		= 31,	// =>NRF24L01
 };
 enum Flysky
 {
@@ -172,6 +171,8 @@ enum FRSKYX
 {
 	CH_16	= 0,
 	CH_8	= 1,
+	EU_16	= 2,
+	EU_8	= 3,
 };
 enum HONTAI
 {
@@ -200,6 +201,13 @@ enum WK2x01
 	W6_HEL	= 4,
 	W6_HEL_I= 5,
 };
+enum Q303
+{
+	Q303	= 0,
+	CX35	= 1,
+	CX10D	= 2,
+	CX10WD	= 3,
+};
 
 enum HUBSAN
 {
@@ -219,10 +227,12 @@ enum FBL100
     FBL100 = 0,
     HP100 = 1
 };
-enum Q303
+enum scanner
 {
-    FORMAT_Q303 = 0,
-    FORMAT_CX35 = 1
+	SC_CYRF		=0,
+	SC_A7105	=1,
+	SC_CC25		=2,
+	SC_NRF		=3,
 };
 
 #define NONE 		0
@@ -502,6 +512,7 @@ Serial: 100000 Baud 8e2      _ xxxx xxxx p --
 					AFHDS2A		28
 					Q2X2		29
 					WK2x01		30
+					Q303		31
    BindBit=>		0x80	1=Bind/0=No
    AutoBindBit=>	0x40	1=Yes /0=No
    RangeCheck=>		0x20	1=Yes /0=No
@@ -573,6 +584,8 @@ Serial: 100000 Baud 8e2      _ xxxx xxxx p --
 		sub_protocol==FRSKYX
 			CH_16		0
 			CH_8		1
+			EU_16		2
+			EU_8		3
 		sub_protocol==HONTAI
 			FORMAT_HONTAI	0
 			FORMAT_JJRCX1	1
@@ -596,10 +609,15 @@ Serial: 100000 Baud 8e2      _ xxxx xxxx p --
 			W6_6_1		3
 			W6_HEL		4
 			W6_HEL_I	5
+		sub_protocol==Q303
+			Q303		0
+			CX35		1
+			CX10D		2
+			CX10WD		3
 
     Power value => 0x80	0=High/1=Low
   Stream[3]   = option_protocol;
-   option_protocol value is -127..127
+   option_protocol value is -128..127
   Stream[4] to [25] = Channels
    16 Channels on 11 bits (0..2047)
 	0		-125%
@@ -610,7 +628,31 @@ Serial: 100000 Baud 8e2      _ xxxx xxxx p --
    Channels bits are concatenated to fit in 22 bytes like in SBUS protocol
 */
 /*
-  Multiprotocol telemetry definition
+  Multimodule Status
+  Based on #define MULTI_STATUS
+
+  Serial: 100000 Baud 8e2 (same as input)
+
+  Format: header (2 bytes) + data (variable)
+   [0] = 'M' (0x4d)
+   [1] Length (excluding the 2 header bytes)
+   [2-xx] data
+
+  Type = 0x01 Multimodule Status:
+   [2] Flags
+   0x01 = Input signal detected
+   0x02 = Serial mode enabled
+   0x04 = protocol is valid
+   0x08 = module is in binding mode
+   [3] major
+   [4] minor
+   [5] revision
+   [6] patchlevel,
+   version of multi code, should be displayed as major.minor.revision.patchlevel
+*/
+/*
+  Multiprotocol telemetry definition for OpenTX
+  Based on #define MULTI_TELEMETRY enables OpenTX to get the multimodule status and select the correct telemetry type automatically.
 
   Serial: 100000 Baud 8e2 (same as input)
 

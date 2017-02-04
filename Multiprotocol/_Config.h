@@ -68,7 +68,7 @@
 
 //The protocols below need an A7105 to be installed
 	#define	JOYSWAY_A7105_INO
-
+	
 	#define	FLYSKY_A7105_INO
 	#define	HUBSAN_A7105_INO
 	#define	AFHDS2A_A7105_INO
@@ -80,7 +80,7 @@
 
 //The protocols below need a CC2500 to be installed
 	#define	SKYARTEC_CC2500_INO
-
+	
 	#define	FRSKYV_CC2500_INO
 	#define	FRSKYD_CC2500_INO
 	#define	FRSKYX_CC2500_INO
@@ -97,15 +97,14 @@
 //	#define	BlueFly_NRF24L01_INO	//probleme gene id
 //	#define	FBL100_NRF24L01_INO	// finir id 				//!\\			//pb voie ???
 //	#define	INAV_NRF24L01_INO	//	a faire
-//	#define	Q303_NRF24L01_INO	
 	
 	#define	BAYANG_NRF24L01_INO
 	#define	CG023_NRF24L01_INO
 	#define	CX10_NRF24L01_INO		// Include Q2X2 protocol
-	#define	ESKY_NRF24L01_INO
+//	#define	ESKY_NRF24L01_INO
 //	#define	HISKY_NRF24L01_INO
 	#define	KN_NRF24L01_INO
-	#define	SLT_NRF24L01_INO
+//	#define	SLT_NRF24L01_INO
 	#define	SYMAX_NRF24L01_INO
 	#define	V2X2_NRF24L01_INO
 	#define	YD717_NRF24L01_INO
@@ -116,6 +115,7 @@
 //	#define	FQ777_NRF24L01_INO
 //	#define	ASSAN_NRF24L01_INO
 //	#define	HONTAI_NRF24L01_INO
+//	#define Q303_NRF24L01_INO
 
 /**************************/
 /*** TELEMETRY SETTINGS ***/
@@ -133,11 +133,15 @@
 //For er9x it depends if you have an inveter mod or not on the telemetry pin. If you don't have an inverter comment this line.
 #define INVERT_TELEMETRY
 
-//Uncomment to send also Multi status and wrap other telemetry to allow TX to autodetect the format
-//Only for newest OpenTX version
+//Comment if you don't want to send Multi status telemetry frames (Protocol available, Bind in progress, version...)
+//Use with er9x/erksy9x, for OpenTX MULTI_TELEMETRY below is preferred instead
+//#define MULTI_STATUS
+
+//Uncomment to send Multi status and allow OpenTX to autodetect the telemetry format
+//Supported by OpenTX version 2.2 RC9 and newer. NOT supported by er9x/ersky9x use MULTI_STATUS instead.
 //#define MULTI_TELEMETRY
 
-//Comment a line to disable a protocol telemetry
+//Comment a line to disable a specific protocol telemetry
 	#define DSM_TELEMETRY				// Forward received telemetry packet directly to TX to be decoded
 	#define SPORT_TELEMETRY				// Use FrSkyX SPORT format to send telemetry to TX
 	#define AFHDS2A_FW_TELEMETRY		// Forward received telemetry packet directly to TX to be decoded
@@ -163,19 +167,13 @@
 //In this section you can configure the NUNCHUCK.
 //If you do not plan to use the NUNCHUCK mode comment this line using "//" to save Flash space, you don't need to configure anything below in this case
 //#define ENABLE_NUNCHUCK
-//	pont diviseur		VCC --------------- 240K ------------- analogRead(0) -------------- 75K ----------- GND
+#define NUNCHUCK_125 110
+#define NUNCHUCK_100 90
+//	pont diviseur		VCC ------- 240K ------- analogRead(3) ------- 75K ------- GND
 #define VBAT_PIN 3 // for Tx adapters with battery
 #define VBAT_VAL 340 // for Tx adapters with battery (attention pont divisieur pour avoir 1,1V max ,~=3,404V)
 #define VBAT_LIM 330 // for Tx adapters with battery (attention pont divisieur pour avoir 1,1V max , ~=3,302V)
 #define BUZZER_PIN 14	//A0
-#define BUZZER_INIT HIGH
-const uint8_t color[] = {
-	0,		255,	0,		0,		255,	100,	// 	VERT		
-	255,	255,	0,		127,	255,	0,		// 	rouge		
-	0,		0,		255,	0,		255,	255,	// 	BLEU		
-	255,	255,	255,	255,	255,	255,	//  BLANC		
-	255,	255,	0,		127,	255,	0,		// 	jaune		
-};
 
 /*************************/
 /*** PPM MODE SETTINGS ***/
@@ -292,6 +290,8 @@ const PPM_Parameters PPM_prot[15]=	{
 	MODE_FRSKYX
 		CH_16
 		CH_8
+		EU_16
+		EU_8
 	MODE_ESKY
 		NONE
 	MODE_MT99XX
@@ -339,6 +339,11 @@ const PPM_Parameters PPM_prot[15]=	{
 		W6_6_1
 		W6_HEL
 		W6_HEL_I
+	MODE_Q303
+		Q303
+		CX35
+		CX10D
+		CX10WD
 */
 
 // RX_Num is used for model match. Using RX_Num	values different for each receiver will prevent starting a model with the false config loaded...
@@ -352,5 +357,5 @@ const PPM_Parameters PPM_prot[15]=	{
 // As an example, it's usefull for the WLTOYS F929/F939/F949/F959 (all using the Flysky protocol) which requires a bind at each power up.
 // It also enables the Bind from channel feature, allowing to execute a bind by toggling a designated channel.
 
-// Option: the value is between -127 and +127.
+// Option: the value is between -128 and +127.
 // The option value is only valid for some protocols, read this page for more information: https://github.com/pascallanger/DIY-Multiprotocol-TX-Module/blob/master/Protocols_Details.md

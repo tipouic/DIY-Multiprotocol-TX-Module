@@ -1,4 +1,7 @@
-0-4 rx Flysky afhds2a
-10+ 0-4 tx id
-     +10 réf gene id
-30+6 devo reset Autobind auto
+0-4		rx Flysky afhds2a
+10+ 0-4	tx id
+    +10	réf gene id
+30+6	devo reset Autobind auto
+30+30	bind WK2X01
+
+50+RX_num*4 +0-3	RX AFHDS2A

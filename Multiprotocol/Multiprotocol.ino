@@ -27,6 +27,7 @@
 
 //Multiprotocol module configuration file
 #include "_Config.h"
+#include "_forceStm32.h"
 #include "Pins.h"
 #include "TX_Def.h"
 #include "Validate.h"
@@ -145,15 +146,17 @@ uint8_t pkt[MAX_PKT];//telemetry receiving packets
 	uint8_t pass = 0;
 	uint8_t pktt[MAX_PKT];//telemetry receiving packets
 	#ifndef BASH_SERIAL
-		#define TXBUFFER_SIZE 32
+		#define TXBUFFER_SIZE 64
 		volatile uint8_t tx_buff[TXBUFFER_SIZE];
 		volatile uint8_t tx_head=0;
 		volatile uint8_t tx_tail=0;
 	#endif // BASH_SERIAL
 	uint8_t v_lipo1;
 	uint8_t v_lipo2;
-	int16_t RSSI_dBm;
+	uint8_t RX_RSSI;
 	uint8_t TX_RSSI;
+	uint8_t RX_LQI;
+	uint8_t TX_LQI;
 	uint8_t telemetry_link=0; 
 	uint8_t telemetry_counter=0;
 	uint8_t telemetry_lost;
@@ -372,12 +375,14 @@ void setup()
 			servo_max_125=SERIAL_MAX_125; servo_min_125=SERIAL_MIN_125;
 			Mprotocol_serial_init(); // Configure serial and enable RX interrupt
 		#endif //ENABLE_SERIAL
+		#ifdef ENABLE_NUNCHUCK
+			servo_max_125=NUNCHUCK_125;		servo_min_125=-servo_max_125;
+			servo_max_100=NUNCHUCK_100;		servo_min_100=-servo_max_100;
+			
+			nunchuck_init();
+		#endif //ENABLE_NUNCHUCK
 	}
 	servo_mid=servo_min_100+servo_max_100;	//In fact 2* mid_value
-	
-	#ifdef ENABLE_NUNCHUCK
-		nunchuck_init();
-	#endif //ENABLE_NUNCHUCK
 }
 
 // Main
@@ -419,7 +424,7 @@ void loop()
 		{
 			TX_MAIN_PAUSE_on;
 			tx_pause();
-			if(IS_INPUT_SIGNAL_on)
+			if(IS_INPUT_SIGNAL_on && remote_callback!=0)
 				next_callback=remote_callback();
 			else
 				next_callback=2000;					// No PPM/serial signal check again in 2ms...
@@ -431,14 +436,16 @@ void loop()
 				cli();								// Disable global int due to RW of 16 bits registers
 				OCR1A += 2000*2 ;					// set compare A for callback
 				#ifndef STM32_BOARD	
-				TIFR1=OCF1A_bm;					// clear compare A=callback flag
+					TIFR1=OCF1A_bm;					// clear compare A=callback flag
 				#else
 					TIMER2_BASE->SR &= ~TIMER_SR_CC1IF;	//clear compare Flag
 				#endif
 				sei();								// enable global int
-				Update_All();
-				if(IS_CHANGE_PROTOCOL_FLAG_on)
-					break; // Protocol has been changed
+				if(Update_All())					// Protocol changed?
+				{
+					next_callback=0;				// Launch new protocol ASAP
+					break;
+				}
 				#ifndef STM32_BOARD	
 					while((TIFR1 & OCF1A_bm) == 0);	// wait 2ms...
 				#else
@@ -462,7 +469,7 @@ void loop()
 	}
 }
 
-void Update_All()
+uint8_t Update_All()
 {
 	#ifdef ENABLE_SERIAL
 		if(mode_select==MODE_SERIAL && IS_RX_FLAG_on)	// Serial mode and something has been received
@@ -490,6 +497,10 @@ void Update_All()
 			last_signal=millis();
 		}
 	#endif //ENABLE_PPM
+	update_channels_aux();
+	#ifdef ENABLE_NUNCHUCK
+		nunchuck_update();
+	#endif //ENABLE_NUNCHUCK
 	#ifdef ENABLE_BIND_CH
 		if(IS_AUTOBIND_FLAG_on && IS_BIND_CH_PREV_off && Servo_data[BIND_CH-1]>PPM_MAX_COMMAND && Servo_data[THROTTLE]<(servo_min_100+25))
 		{ // Autobind is on and BIND_CH went up and Throttle is low
@@ -504,15 +515,16 @@ void Update_All()
 		LED_off;											//led off during protocol init
 		modules_reset();									//reset all modules
 		protocol_init();									//init new protocol
+		return 1;
 	}
-	update_channels_aux();
 	#if defined(TELEMETRY)
-		#if !defined(MULTI_TELEMETRY)
+		#if ( !( defined(MULTI_TELEMETRY) || defined(MULTI_STATUS) ) )
 			if((protocol==MODE_FRSKYD) || (protocol==MODE_BAYANG) || (protocol==MODE_HUBSAN) || (protocol==MODE_AFHDS2A) || (protocol==MODE_FRSKYX) || (protocol==MODE_DSM) )
 		#endif
 			TelemetryUpdate();
 	#endif 
 	update_led_status();
+	return 0;
 }
 
 // Update channels direction and Servo_AUX flags based on servo AUX positions
@@ -667,7 +679,6 @@ static void protocol_init()
   
 	switch(protocol)				// Init the requested protocol
 	{
-
 		#ifdef A7105_INSTALLED
 			#if defined(JOYSWAY_A7105_INO)
 				case MODE_JOYSWAY:
@@ -855,12 +866,6 @@ static void protocol_init()
 					remote_callback = inav_cb;
 					break;
 			#endif
-			#if defined(Q303_NRF24L01_INO)
-				case MODE_Q303:
-					next_callback=q303_init();
-					remote_callback = q303_callback;
-					break;
-			#endif
 			
 			#if defined(HISKY_NRF24L01_INO)
 				case MODE_HISKY:
@@ -966,6 +971,12 @@ static void protocol_init()
 					remote_callback = HONTAI_callback;
 					break;
 			#endif
+			#if defined(Q303_NRF24L01_INO)
+				case MODE_Q303:
+					next_callback=initQ303();
+					remote_callback = Q303_callback;
+					break;
+			#endif
 		#endif
 	}
 
@@ -1059,13 +1070,13 @@ void modules_reset()
 		CC2500_Reset();
 	#endif
 	#ifdef	A7105_INSTALLED
-				A7105_Reset();
+		A7105_Reset();
 	#endif
 	#ifdef	CYRF6936_INSTALLED
-				CYRF_Reset();
+		CYRF_Reset();
 	#endif
 	#ifdef	NRF24L01_INSTALLED
-				NRF24L01_Reset();
+		NRF24L01_Reset();
 	#endif
 
 	//Wait for every component to reset
@@ -1118,21 +1129,12 @@ void Mprotocol_serial_init()
 #if defined(TELEMETRY)
 	void PPM_Telemetry_serial_init()
 	{
-	#ifdef MULTI_TELEMETRY
-		Mprotocol_serial_init();
-		#ifndef ORANGE_TX
-			#ifndef STM32_BOARD
-				UCSR0B &= ~(_BV(RXEN0)|_BV(RXCIE0));//rx disable and interrupt
-			#endif
-		#endif
-	#else
 		if( (protocol==MODE_FRSKYD) || (protocol==MODE_HUBSAN) || (protocol==MODE_AFHDS2A) || (protocol==MODE_BAYANG) )
 			initTXSerial( SPEED_9600 ) ;
 		if(protocol==MODE_FRSKYX)
 			initTXSerial( SPEED_57600 ) ;
 		if(protocol==MODE_DSM)
 			initTXSerial( SPEED_125K ) ;
-	#endif
 	}
 #endif
 

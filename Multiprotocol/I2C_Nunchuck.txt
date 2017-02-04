@@ -1,0 +1,47 @@
+Flysky uniquement 
+              3 voies              2 acc              1 potar
+
+Fonction base
+              - rebind
+              - calibre gyro
+              - inversion prof
+              -                      dir
+              - chgmt prof/dir
+
+
+
+Normal (Vert)
+Z -> coupure gaz (rouge)
+C -> config (bleu)
+	     -> accès possible via coupure
+				 rebind
+					^
+	position secu < 0 > 1 édit servo
+					V →  chgmt modèle
+
+                 Prof inverse
+				 ^
+chgmt order CH < 1 > dir
+				 V
+              Trim JX
+
+
+Secu gaz (attend retour mini)
+	allumage
+	sortie coupure
+		config
+
+Buzzer
+	alarme accus
+	beep touche, op deb/fin calibre
+
+Eeprom
+1 modèle
+
+	1	1  proto
+	2	2 *changement dir/prof
+		3 *inverse dir
+		4 *inverse prof
+	3	5  trim JX
+		6 *Dual-rate (réglage sensibilité 60 / 100%)
+		7 *neutre gaz (bas/milieu)

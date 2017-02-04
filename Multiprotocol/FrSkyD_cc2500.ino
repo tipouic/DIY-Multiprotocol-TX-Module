@@ -19,26 +19,7 @@
 
 static void __attribute__((unused)) frsky2way_init(uint8_t bind)
 {
-	// Configure cc2500 for tx mode
-	//
-	for(uint8_t i=0;i<36;i++)
-	{
-		uint8_t reg=pgm_read_byte_near(&cc2500_conf[i][0]);
-		uint8_t val=pgm_read_byte_near(&cc2500_conf[i][1]);
-		
-		if(reg==CC2500_0C_FSCTRL0)
-			val=option;
-		else
-			if(reg==CC2500_1B_AGCCTRL2)
-				val=bind ? 0x43 : 0x03;
-		CC2500_WriteReg(reg,val);
-	}
-	prev_option = option ;
-
-	CC2500_SetTxRxMode(TX_EN);
-	CC2500_SetPower();
-	
-	CC2500_Strobe(CC2500_SIDLE);	
+	FRSKY_init_cc2500(FRSKYD_cc2500_conf);	
 
 	CC2500_WriteReg(CC2500_09_ADDR, bind ? 0x03 : rx_tx_addr[3]);
 	CC2500_WriteReg(CC2500_07_PKTCTRL1, 0x05);
@@ -115,6 +96,7 @@ static void __attribute__((unused)) frsky2way_data_frame()
 uint16_t initFrSky_2way()
 {
 	Frsky_init_hop();
+	packet_count=0;
 	if(IS_AUTOBIND_FLAG_on)
 	{
 		frsky2way_init(1);
@@ -170,14 +152,30 @@ uint16_t ReadFrSky_2way()
 		if (state == FRSKY_DATA1)
 		{
 			len = CC2500_ReadReg(CC2500_3B_RXBYTES | CC2500_READ_BURST) & 0x7F;
-			if (len && len<=MAX_PKT)//27 bytes
-			{
-				CC2500_ReadData(pkt, len);	//received telemetry packets			
+			if (len && len<=(0x11+3))// 20bytes
+			{		
+				CC2500_ReadData(pkt, len);				//received telemetry packets
 				#if defined(TELEMETRY)
-				//parse telemetry packet here
-				frsky_check_telemetry(pkt,len);	//check if valid telemetry packets and buffer them.
-				#endif	
-			}			
+					if(pkt[len-1] & 0x80)
+					{//with valid crc
+						packet_count=0;
+						frsky_check_telemetry(pkt,len);	//check if valid telemetry packets and buffer them.
+					}
+				#endif
+			}
+			else
+			{
+				packet_count++;
+				// restart sequence on missed packet - might need count or timeout instead of one missed
+				if(packet_count>100)
+				{//~1sec
+					packet_count=0;
+					#if defined TELEMETRY
+						telemetry_link=0;//no link frames
+						pkt[6]=0;//no user frames.
+					#endif
+				}
+			}
 			CC2500_SetTxRxMode(TX_EN);
 			CC2500_SetPower();	// Set tx_power
 		}

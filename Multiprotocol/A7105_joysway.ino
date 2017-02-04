@@ -83,9 +83,9 @@ static uint16_t joysway_cb() {
 
 static uint16_t JOYSWAY_Setup() {
 	int i;
-	u8 if_calibration1;
-	//u8 vco_calibration0;
-	//u8 vco_calibration1;
+	uint8_t if_calibration1;
+	//uint8_t vco_calibration0;
+	//uint8_t vco_calibration1;
 
 	counter = 0;
 //    next_ch = 0x30;
