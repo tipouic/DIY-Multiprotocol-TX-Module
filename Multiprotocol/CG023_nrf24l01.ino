@@ -31,6 +31,29 @@
 #define H8_3D_PACKET_SIZE		20
 #define H8_3D_RF_NUM_CHANNELS	4
 
+#define H20H_PACKET_PERIOD 9340
+#define H20MINI_PACKET_PERIOD 3100
+#define H20H_BIND_RF       0x49
+
+
+// captured from H20H stock transmitters
+uint8_t h20h_map_txid[][4] = {{0x83, 0x3c, 0x60, 0x00}, {0x5c, 0x2b, 0x60, 0x00}, {0x57, 0x07, 0x00, 0x00}, };
+uint8_t h20h_map_rfchan[][4] = {{0x47, 0x3e}, {0x4a, 0x3c}, {0x41, 0x48},};
+
+// captured from H20 Mini / H30 Mini stock transmitters
+uint8_t h20mini_map_txid[][4] = {
+		{0xb4, 0xbb, 0x09, 0x00}, 
+		{0x94, 0x9d, 0x0b, 0x00}, 
+		{0xd1, 0xd0, 0x00, 0x00}, 
+		{0xcb, 0xcd, 0x04, 0x00}, 
+	};
+uint8_t h20mini_map_rfchan[][4] = {
+		{0x3e, 0x45, 0x47, 0x4a}, 
+		{0x3e, 0x43, 0x49, 0x4a}, 
+		{0x3f, 0x42, 0x46, 0x4a}, 
+		{0x41, 0x43, 0x46, 0x4a}, 
+	};
+
 
 enum CG023_FLAGS {
     // flags going to packet[13]
@@ -77,10 +100,18 @@ enum H8_3D_FLAGS_2 {
 
 static void __attribute__((unused)) CG023_send_packet(uint8_t bind)
 {
-	// throttle : 0x00 - 0xFF
-	throttle=convert_channel_8b(THROTTLE);
-	// rudder
-	rudder = convert_channel_8b_scale(RUDDER,0x44,0xBC);	// yaw right : 0x80 (neutral) - 0xBC (right)
+	if(sub_protocol==H20H) {
+		throttle = convert_channel_8b_scale(THROTTLE, 0x43, 0xBB);
+		rudder = convert_channel_8b_scale(RUDDER, 0x43, 0xBB);
+	} else	if(sub_protocol==H30MINI) {
+		throttle = convert_channel_8b_scale(THROTTLE, 0xBB, 0x43);
+		rudder = convert_channel_8b_scale(RUDDER, 0xBB, 0x43);
+	} else {
+		// throttle : 0x00 - 0xFF
+		throttle=convert_channel_8b(THROTTLE);
+		// rudder
+		rudder = convert_channel_8b_scale(RUDDER,0x44,0xBC);	// yaw right : 0x80 (neutral) - 0xBC (right)
+	}
 	if (rudder<=0x80)
 		rudder=0x80-rudder;							// yaw left : 0x00 (neutral) - 0x3C (left)
 	// elevator : 0xBB - 0x7F - 0x43
@@ -90,9 +121,9 @@ static void __attribute__((unused)) CG023_send_packet(uint8_t bind)
 	
 	packet[1] = rx_tx_addr[0]; 
 	packet[2] = rx_tx_addr[1];
-	if(sub_protocol==H8_3D)
+	if(sub_protocol==H8_3D || sub_protocol==H20MINI || sub_protocol==H20H)
 	{
-		packet[0] = 0x13;
+		packet[0] = sub_protocol==H20H ? 0x14 : 0x13;
 		packet[3] = rx_tx_addr[2];
 		packet[4] = rx_tx_addr[3];
 		packet[8] = rx_tx_addr[0]+rx_tx_addr[1]+rx_tx_addr[2]+rx_tx_addr[3]; // txid checksum
@@ -106,19 +137,26 @@ static void __attribute__((unused)) CG023_send_packet(uint8_t bind)
 		else
 		{
 			packet[5] = hopping_frequency_no;
-			packet[6] = 0x08;
 			packet[7] = 0x03;
-			packet[9] = throttle;
-			if(rudder==0x01) rudder=0;	// Small deadband
-			if(rudder==0x81) rudder=0;	// Small deadband
-			packet[10] = rudder;
-			packet[11] = elevator;
-			packet[12] = aileron;
-			// neutral trims
 			packet[13] = 0x20;
 			packet[14] = 0x20;
-			packet[15] = 0x20;
-			packet[16] = 0x20;
+			packet[11] = elevator;
+			packet[12] = aileron;
+			if(sub_protocol==H20H) {
+				packet[6] = hopping_frequency_no == 0 ? 8 - bind_counter : 16 - bind_counter;
+				// neutral trims
+				packet[15] = 0x40;
+				packet[16] = 0x40;
+			} else {
+				packet[6] = 0x08;
+				if(rudder==0x01) rudder=0;	// Small deadband
+				if(rudder==0x81) rudder=0;	// Small deadband
+				// neutral trims
+				packet[15] = 0x20;
+				packet[16] = 0x20;
+			}
+			packet[10] = rudder;
+			packet[9] = throttle;
 			packet[17] = 					  H8_3D_FLAG_RATE_HIGH
 						| GET_FLAG(Servo_AUX1,H8_3D_FLAG_FLIP)
 						| GET_FLAG(Servo_AUX2,H8_3D_FLAG_LIGTH) //H22 light
@@ -184,21 +222,56 @@ static void __attribute__((unused)) CG023_send_packet(uint8_t bind)
 	// Why CRC0? xn297 does not interpret it - either 16-bit CRC or nothing
 	XN297_Configure(_BV(NRF24L01_00_EN_CRC) | _BV(NRF24L01_00_CRCO) | _BV(NRF24L01_00_PWR_UP));
 	if (bind)
-		NRF24L01_WriteReg(NRF24L01_05_RF_CH, sub_protocol==H8_3D?hopping_frequency[0]:CG023_RF_BIND_CHANNEL);
+		switch(sub_protocol) {
+			case H8_3D:
+			case H20MINI:
+			case H30MINI:
+				NRF24L01_WriteReg(NRF24L01_05_RF_CH, hopping_frequency[0]);
+				break;
+			case H20H:
+				NRF24L01_WriteReg(NRF24L01_05_RF_CH, H20H_BIND_RF);
+				break;
+			case CG023:
+			case YD829:
+				NRF24L01_WriteReg(NRF24L01_05_RF_CH, CG023_RF_BIND_CHANNEL);
+				break;
+		}
+		// NRF24L01_WriteReg(NRF24L01_05_RF_CH, sub_protocol==H8_3D?hopping_frequency[0]:CG023_RF_BIND_CHANNEL);
 	else
 	{
-		if(sub_protocol==H8_3D)
-		{
-			NRF24L01_WriteReg(NRF24L01_05_RF_CH, hopping_frequency[hopping_frequency_no++]);
-			hopping_frequency_no %= H8_3D_RF_NUM_CHANNELS;
+		switch(sub_protocol) {
+			case H8_3D:
+			case H20MINI:
+			case H30MINI:
+				NRF24L01_WriteReg(NRF24L01_05_RF_CH, hopping_frequency[hopping_frequency_no++]);
+				hopping_frequency_no %= H8_3D_RF_NUM_CHANNELS;
+				break;
+			case H20H:
+				NRF24L01_WriteReg(NRF24L01_05_RF_CH, hopping_frequency[bind_counter++]);
+				if(bind_counter>15) { bind_counter=0; hopping_frequency_no=0; }
+				else if(bind_counter>7) { hopping_frequency_no=1; }
+				break;
+			case CG023:
+			case YD829:
+				NRF24L01_WriteReg(NRF24L01_05_RF_CH, hopping_frequency_no);
+				break;
 		}
-		else // CG023 and YD829
-			NRF24L01_WriteReg(NRF24L01_05_RF_CH, hopping_frequency_no);
 	}
 	// clear packet status bits and TX FIFO
 	NRF24L01_WriteReg(NRF24L01_07_STATUS, 0x70);
 	NRF24L01_FlushTx();
-	XN297_WritePayload(packet, sub_protocol==H8_3D ? H8_3D_PACKET_SIZE:CG023_PACKET_SIZE);
+	switch(sub_protocol) {
+		case H8_3D:
+		case H20MINI:
+		case H30MINI:
+		case H20H:
+			XN297_WritePayload(packet, H8_3D_PACKET_SIZE);
+			break;
+		case CG023:
+		case YD829:
+			XN297_WritePayload(packet, CG023_PACKET_SIZE);
+			break;
+	}
 
 	NRF24L01_SetPower();	// Set tx_power
 }
@@ -207,11 +280,21 @@ static void __attribute__((unused)) CG023_init()
 {
     NRF24L01_Initialize();
     NRF24L01_SetTxRxMode(TX_EN);
-	if(sub_protocol==H8_3D)
-		XN297_SetTXAddr((uint8_t *)"\xC4\x57\x09\x65\x21", 5);
-	else // CG023 and YD829
-		XN297_SetTXAddr((uint8_t *)"\x26\xA8\x67\x35\xCC", 5);
-
+	switch(sub_protocol) {
+		case H8_3D:
+		case H20MINI:
+		case H30MINI:
+			XN297_SetTXAddr((uint8_t *)"\xC4\x57\x09\x65\x21", 5);
+			break;
+		case H20H:
+			XN297_SetTXAddr((uint8_t *)"\xee\xdd\xcc\xbb\x11", 5);
+			break;
+		case CG023:
+		case YD829:
+			XN297_SetTXAddr((uint8_t *)"\x26\xA8\x67\x35\xCC", 5);
+			break;
+	}
+	
     NRF24L01_FlushTx();
     NRF24L01_FlushRx();
     NRF24L01_WriteReg(NRF24L01_07_STATUS, 0x70);     // Clear data ready, data sent, and retransmit
@@ -240,24 +323,43 @@ uint16_t CG023_callback()
 
 static void __attribute__((unused)) CG023_initialize_txid()
 {
-	if(sub_protocol==H8_3D)
+	switch(sub_protocol)
 	{
-		rx_tx_addr[0] = 0xa0 + (rx_tx_addr[0] % 0x10);
-		rx_tx_addr[1] = 0xb0 + (rx_tx_addr[1] % 0x20);
-		rx_tx_addr[2] = rx_tx_addr[2] % 0x20;
-		rx_tx_addr[3] = rx_tx_addr[3] % 0x11;
+		case H8_3D:
+			rx_tx_addr[0] = 0xa0 + (rx_tx_addr[0] % 0x10);
+			rx_tx_addr[1] = 0xb0 + (rx_tx_addr[1] % 0x20);
+			rx_tx_addr[2] = rx_tx_addr[2] % 0x20;
+			rx_tx_addr[3] = rx_tx_addr[3] % 0x11;
 
-		hopping_frequency[0] = 0x06 + ((rx_tx_addr[0]&0x0f) % 0x0f);
-		hopping_frequency[1] = 0x15 + ((rx_tx_addr[1]&0x0f) % 0x0f);
-		hopping_frequency[2] = 0x24 + ((rx_tx_addr[2]&0x0f) % 0x0f);
-		hopping_frequency[3] = 0x33 + ((rx_tx_addr[3]&0x0f) % 0x0f);
-	}
-	else
-	{ // CG023 and YD829
-		rx_tx_addr[0]= 0x80 | (rx_tx_addr[0] % 0x40);
-		if( rx_tx_addr[0] == 0xAA)			// avoid using same freq for bind and data channel
-			rx_tx_addr[0] ++;
-		hopping_frequency_no = rx_tx_addr[0] - 0x7D;	// rf channel for data packets
+			hopping_frequency[0] = 0x06 + ((rx_tx_addr[0]&0x0f) % 0x0f);
+			hopping_frequency[1] = 0x15 + ((rx_tx_addr[1]&0x0f) % 0x0f);
+			hopping_frequency[2] = 0x24 + ((rx_tx_addr[2]&0x0f) % 0x0f);
+			hopping_frequency[3] = 0x33 + ((rx_tx_addr[3]&0x0f) % 0x0f);
+			break;
+		case H20MINI:
+		case H30MINI:
+			for(uint8_t i=0;i<2;i++) {
+				hopping_frequency[i]=pgm_read_byte_near( &h20mini_map_rfchan[rx_tx_addr[3]&0x0F][i] );
+				hopping_frequency[i+2]=hopping_frequency[i]+0x10;
+			}
+			for(uint8_t i=0;i<4;i++)
+				rx_tx_addr[i]=pgm_read_byte_near( &h20mini_map_txid[rx_tx_addr[3]&0x0F][i] );
+			break;
+		case H20H:
+			for(uint8_t i=0;i<2;i++) {
+				hopping_frequency[i]=pgm_read_byte_near( &h20h_map_rfchan[rx_tx_addr[3]&0x0F][i] );
+				hopping_frequency[i+2]=hopping_frequency[i]+0x10;
+			}
+			for(uint8_t i=0;i<4;i++)
+				rx_tx_addr[i]=pgm_read_byte_near( &h20h_map_txid[rx_tx_addr[3]&0x0F][i] );
+			break;
+		case CG023:
+		case YD829:
+			rx_tx_addr[0]= 0x80 | (rx_tx_addr[0] % 0x40);
+			if( rx_tx_addr[0] == 0xAA)			// avoid using same freq for bind and data channel
+				rx_tx_addr[0] ++;
+			hopping_frequency_no = rx_tx_addr[0] - 0x7D;	// rf channel for data packets
+			break;
 	}
 }
 
@@ -267,13 +369,14 @@ uint16_t initCG023(void)
     bind_counter = CG023_BIND_COUNT;
 	CG023_initialize_txid();
 	CG023_init();
-	if(sub_protocol==CG023)
-		packet_period=CG023_PACKET_PERIOD;
-	else
-		if(sub_protocol==YD829)
-			packet_period=YD829_PACKET_PERIOD;
-		else
-			packet_period=H8_3D_PACKET_PERIOD;
+	switch(sub_protocol) {
+		case H8_3D:		packet_period = H8_3D_PACKET_PERIOD;		break;
+		case H20MINI:	packet_period = H20MINI_PACKET_PERIOD;		break;
+		case H30MINI:	packet_period = H20MINI_PACKET_PERIOD;		break;
+		case H20H:		packet_period = H20H_PACKET_PERIOD;			break;
+		case CG023:		packet_period = CG023_PACKET_PERIOD;		break;
+		case YD829:		packet_period = YD829_PACKET_PERIOD;		break;
+	}
 	return	CG023_INITIAL_WAIT+YD829_PACKET_PERIOD;
 }
 

@@ -111,7 +111,7 @@ local function init()
 end
 
 -- Protocol Menu
-local ProtoItems = {,"4""FLYSKY","HUBSAN","FRSKYD","HISKY","V2X2","DSM","DEVO","YD717","KN","SYMAX","SLT","CX10","CG023","BAYANG","FRSKYX","ESKY","MT99XX","MJXQ","SHENQI","FY326","SFHSS","J6PRO","FQ777","ASSAN","FRSKYV","HONTAI","OPENLRS","AFHDS2A","Q2X2","WK2X01","Q303","HM830","JOYSWAY","SKYARTEC","CFLIE","H377","ESKY150","BLUEFLY","NE260","INAV","FBL100","UDI"}
+local ProtoItems = {,"4""FLYSKY","HUBSAN","FRSKYD","HISKY","V2X2","DSM","DEVO","YD717","KN","SYMAX","SLT","CX10","CG023","BAYANG","FRSKYX","ESKY","MT99XX","MJXQ","SHENQI","FY326","SFHSS","J6PRO","FQ777","ASSAN","FRSKYV","HONTAI","OPENLRS","AFHDS2A","Q2X2","WK2X01","Q303","GW008","DM002","HM830","JOYSWAY","SKYARTEC","CFLIE","H377","ESKY150","BLUEFLY","NE260","INAV","E012","FBL100","UDI","CABELL"}
 local SubProtoItemsA = {"FLYSKY","V9X9","V6X6","V912","CX20"}
 local SubProtoItemsB = {"H107","H301","H501"}
 local SubProtoItemsC = {"HISKY","HK310"}
@@ -122,17 +122,19 @@ local SubProtoItemsG = {"WLTOYS","FEILUN"}
 local SubProtoItemsH = {"SYMAX","SYMAX5C"}
 local SubProtoItemsI = {"GREEN","BLUE","DM007","JC3015_1","JC3015_2","MK33041"}
 local SubProtoItemsJ = {"CG023","YD829","H8_3D"}
-local SubProtoItemsK = {"BAYANG","H8S3D"}
-local SubProtoItemsL = {"CH_16","CH_8"}
+local SubProtoItemsK = {"BAYANG","H8S3D","IRDRONE","X16_AH"}
+local SubProtoItemsL = {"CH_16","CH_8","EU_16","EU_8"}
 local SubProtoItemsM = {"MT99","H7","YZ","LS","FY805"}
-local SubProtoItemsN = {"WLH08","X600","X800","H26D","H26WH","E010"}
-local SubProtoItemsO = {"HONTAI","JJRCX1","FQ777_951"}
-local SubProtoItemsP = {"PWM_IBUS","PPM_IBUS","PWM_SBUS","PPM_SBUS"}
-local SubProtoItemsQ = {"Q2X2","Q242","Q282","Q222"}
-local SubProtoItemsR = {"WK2801","WK2401","W6_5_1","W6_6_1","W6_HEL"}
-local SubProtoItemsS = {"Q303","CX35","CX10D","CX10WD"}
-local SubProtoItemsT = {"FBL100","HP100"}
-local SubProtoItemsU = {"U816_V1","U816_V2","U839_2014"}
+local SubProtoItemsN = {"WLH08","X600","X800","H26D","E010","H26WH"}
+local SubProtoItemsO = {"FY326","FY319"}
+local SubProtoItemsP = {"HONTAI","JJRCX1","X5C1","FQ777_951"}
+local SubProtoItemsQ = {"PWM_IBUS","PPM_IBUS","PWM_SBUS","PPM_SBUS"}
+local SubProtoItemsR = {"Q2X2","Q222","Q242","Q282"}
+local SubProtoItemsS = {"WK2801","WK2401","W6_5_1","W6_6_1","W6_HEL","W6_HEL_I"}
+local SubProtoItemsT = {"Q303","CX35","CX10D","CX10WD"}
+local SubProtoItemsU = {"FBL100","HP100"}
+local SubProtoItemsV = {"U816_V1","U816_V2","U839_2014"}
+local SubProtoItemsW = {"V3","SET_FAIL_SAFE","UNBIND"}
 
 local function drawEngineMenu()
   lcd.clear()
@@ -235,14 +237,14 @@ local function drawEngineMenu()
   elseif ProtoId == 13 then
     ProtoSub = 0
     fieldsMax = 1
-    ProtoSubNb = 1
+    ProtoSubNb = 3
     lcd.drawNumber(12, 20, ProtoSub, getFieldFlags(1))
     lcd.drawText(17, 20, SubProtoItemsK[ProtoSub+1], getFieldFlags(1))
     SubProtoItems = SubProtoItemsK
   elseif ProtoId == 14 then
     ProtoSub = 0
     fieldsMax = 1
-    ProtoSubNb = 1
+    ProtoSubNb = 3
     lcd.drawNumber(12, 20, ProtoSub, getFieldFlags(1))
     lcd.drawText(17, 20, SubProtoItemsL[ProtoSub+1], getFieldFlags(1))
     SubProtoItems = SubProtoItemsL
@@ -272,9 +274,11 @@ local function drawEngineMenu()
     SubProtoItems = {""}
   elseif ProtoId == 19 then
     ProtoSub = 0
-    fieldsMax = 0
-    ProtoSubNb = 0
-    SubProtoItems = {""}
+    fieldsMax = 1
+    ProtoSubNb = 1
+    lcd.drawNumber(12, 20, ProtoSub, getFieldFlags(1))
+    lcd.drawText(17, 20, SubProtoItemsO[ProtoSub+1], getFieldFlags(1))
+    SubProtoItems = SubProtoItemsO
   elseif ProtoId == 20 then
     ProtoSub = 0
     fieldsMax = 0
@@ -303,10 +307,10 @@ local function drawEngineMenu()
   elseif ProtoId == 25 then
     ProtoSub = 0
     fieldsMax = 1
-    ProtoSubNb = 2
+    ProtoSubNb = 3
     lcd.drawNumber(12, 20, ProtoSub, getFieldFlags(1))
-    lcd.drawText(17, 20, SubProtoItemsO[ProtoSub+1], getFieldFlags(1))
-    SubProtoItems = SubProtoItemsO
+    lcd.drawText(17, 20, SubProtoItemsP[ProtoSub+1], getFieldFlags(1))
+    SubProtoItems = SubProtoItemsP
   elseif ProtoId == 26 then
     ProtoSub = 0
     fieldsMax = 0
@@ -317,29 +321,39 @@ local function drawEngineMenu()
     fieldsMax = 1
     ProtoSubNb = 3
     lcd.drawNumber(12, 20, ProtoSub, getFieldFlags(1))
-    lcd.drawText(17, 20, SubProtoItemsP[ProtoSub+1], getFieldFlags(1))
-    SubProtoItems = SubProtoItemsP
+    lcd.drawText(17, 20, SubProtoItemsQ[ProtoSub+1], getFieldFlags(1))
+    SubProtoItems = SubProtoItemsQ
   elseif ProtoId == 28 then
     ProtoSub = 0
     fieldsMax = 1
     ProtoSubNb = 3
     lcd.drawNumber(12, 20, ProtoSub, getFieldFlags(1))
-    lcd.drawText(17, 20, SubProtoItemsQ[ProtoSub+1], getFieldFlags(1))
-    SubProtoItems = SubProtoItemsQ
+    lcd.drawText(17, 20, SubProtoItemsR[ProtoSub+1], getFieldFlags(1))
+    SubProtoItems = SubProtoItemsR
   elseif ProtoId == 29 then
     ProtoSub = 0
     fieldsMax = 1
-    ProtoSubNb = 4
+    ProtoSubNb = 5
     lcd.drawNumber(12, 20, ProtoSub, getFieldFlags(1))
-    lcd.drawText(17, 20, SubProtoItemsR[ProtoSub+1], getFieldFlags(1))
-    SubProtoItems = SubProtoItemsR
+    lcd.drawText(17, 20, SubProtoItemsS[ProtoSub+1], getFieldFlags(1))
+    SubProtoItems = SubProtoItemsS
   elseif ProtoId == 30 then
     ProtoSub = 0
     fieldsMax = 1
     ProtoSubNb = 3
     lcd.drawNumber(12, 20, ProtoSub, getFieldFlags(1))
-    lcd.drawText(17, 20, SubProtoItemsS[ProtoSub+1], getFieldFlags(1))
-    SubProtoItems = SubProtoItemsS
+    lcd.drawText(17, 20, SubProtoItemsT[ProtoSub+1], getFieldFlags(1))
+    SubProtoItems = SubProtoItemsT
+  elseif ProtoId == 31 then
+    ProtoSub = 0
+    fieldsMax = 0
+    ProtoSubNb = 0
+    SubProtoItems = {""}
+  elseif ProtoId == 32 then
+    ProtoSub = 0
+    fieldsMax = 0
+    ProtoSubNb = 0
+    SubProtoItems = {""}
   elseif ProtoId == 39 then
     ProtoSub = 0
     fieldsMax = 0
@@ -385,20 +399,32 @@ local function drawEngineMenu()
     fieldsMax = 0
     ProtoSubNb = 0
     SubProtoItems = {""}
+  elseif ProtoId == 57 then
+    ProtoSub = 0
+    fieldsMax = 0
+    ProtoSubNb = 0
+    SubProtoItems = {""}
   elseif ProtoId == 58 then
     ProtoSub = 0
     fieldsMax = 1
     ProtoSubNb = 1
     lcd.drawNumber(12, 20, ProtoSub, getFieldFlags(1))
-    lcd.drawText(17, 20, SubProtoItemsT[ProtoSub+1], getFieldFlags(1))
-    SubProtoItems = SubProtoItemsT
+    lcd.drawText(17, 20, SubProtoItemsU[ProtoSub+1], getFieldFlags(1))
+    SubProtoItems = SubProtoItemsU
   elseif ProtoId == 59 then
     ProtoSub = 0
     fieldsMax = 1
     ProtoSubNb = 2
     lcd.drawNumber(12, 20, ProtoSub, getFieldFlags(1))
-    lcd.drawText(17, 20, SubProtoItemsU[ProtoSub+1], getFieldFlags(1))
-    SubProtoItems = SubProtoItemsU
+    lcd.drawText(17, 20, SubProtoItemsV[ProtoSub+1], getFieldFlags(1))
+    SubProtoItems = SubProtoItemsV
+  elseif ProtoId == 60 then
+    ProtoSub = 0
+    fieldsMax = 1
+    ProtoSubNb = 2
+    lcd.drawNumber(12, 20, ProtoSub, getFieldFlags(1))
+    lcd.drawText(17, 20, SubProtoItemsW[ProtoSub+1], getFieldFlags(1))
+    SubProtoItems = SubProtoItemsW
   end
 end
 local function engineMenu(event)
@@ -410,7 +436,7 @@ local function engineMenu(event)
   navigate(event, fieldsMax, page, page+1)
 
   if field==0 then
-    ProtoId = fieldIncDec(event, ProtoId, 41)
+    ProtoId = fieldIncDec(event, ProtoId, 45)
   elseif field==1 then
     ProtoSub = fieldIncDec(event, ProtoSub, ProtoSubNb)
   end
@@ -769,6 +795,12 @@ local function applySettings()
       model.insertMix(12, model.getMixesCount(12), { name="GIMBAL", source=92, weight=100, multiplex=ADD })
       model.insertMix(13, model.getMixesCount(13), { name="Reset/Bind", source=92, weight=100, multiplex=ADD })
     end
+    if ProtoSub == 3 then	--proto H20H 
+    end
+    if ProtoSub == 4 then	--proto H20MINI 
+    end
+    if ProtoSub == 5 then	--proto H30MINI 
+    end
   elseif ProtoId == 13 then
     if ProtoSub == 0 then	--proto BAYANG 
       model.insertMix(4, model.getMixesCount(4), { name="FLIP", source=97, weight=100, multiplex=ADD })
@@ -780,6 +812,24 @@ local function applySettings()
       model.insertMix(10, model.getMixesCount(10), { name="", source=92, weight=100, multiplex=ADD })
     end
     if ProtoSub == 1 then	--proto H8S3D 
+      model.insertMix(4, model.getMixesCount(4), { name="FLIP", source=97, weight=100, multiplex=ADD })
+      model.insertMix(5, model.getMixesCount(5), { name="RTH", source=92, weight=100, multiplex=ADD })
+      model.insertMix(6, model.getMixesCount(6), { name="PICTURE", source=92, weight=100, multiplex=ADD })
+      model.insertMix(7, model.getMixesCount(7), { name="VIDEO", source=92, weight=100, multiplex=ADD })
+      model.insertMix(8, model.getMixesCount(8), { name="HEADLESS", source=91, weight=100, multiplex=ADD })
+      model.insertMix(9, model.getMixesCount(9), { name="INVERTED", source=94, weight=100, multiplex=ADD })
+      model.insertMix(10, model.getMixesCount(10), { name="", source=92, weight=100, multiplex=ADD })
+    end
+    if ProtoSub == 2 then	--proto X16_AH 
+      model.insertMix(4, model.getMixesCount(4), { name="FLIP", source=97, weight=100, multiplex=ADD })
+      model.insertMix(5, model.getMixesCount(5), { name="RTH", source=92, weight=100, multiplex=ADD })
+      model.insertMix(6, model.getMixesCount(6), { name="PICTURE", source=92, weight=100, multiplex=ADD })
+      model.insertMix(7, model.getMixesCount(7), { name="VIDEO", source=92, weight=100, multiplex=ADD })
+      model.insertMix(8, model.getMixesCount(8), { name="HEADLESS", source=91, weight=100, multiplex=ADD })
+      model.insertMix(9, model.getMixesCount(9), { name="INVERTED", source=94, weight=100, multiplex=ADD })
+      model.insertMix(10, model.getMixesCount(10), { name="", source=92, weight=100, multiplex=ADD })
+    end
+    if ProtoSub == 3 then	--proto IRDRONE 
       model.insertMix(4, model.getMixesCount(4), { name="FLIP", source=97, weight=100, multiplex=ADD })
       model.insertMix(5, model.getMixesCount(5), { name="RTH", source=92, weight=100, multiplex=ADD })
       model.insertMix(6, model.getMixesCount(6), { name="PICTURE", source=92, weight=100, multiplex=ADD })
@@ -804,6 +854,26 @@ local function applySettings()
       model.insertMix(15, model.getMixesCount(15), { name="----", source=92, weight=100, multiplex=ADD })
     end
     if ProtoSub == 1 then	--proto CH_8 
+      model.insertMix(4, model.getMixesCount(4), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(5, model.getMixesCount(5), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(6, model.getMixesCount(6), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(7, model.getMixesCount(7), { name="---", source=92, weight=100, multiplex=ADD })
+    end
+    if ProtoSub == 2 then	--proto EU_16 
+      model.insertMix(4, model.getMixesCount(4), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(5, model.getMixesCount(5), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(6, model.getMixesCount(6), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(7, model.getMixesCount(7), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(8, model.getMixesCount(8), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(9, model.getMixesCount(9), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(10, model.getMixesCount(10), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(11, model.getMixesCount(11), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(12, model.getMixesCount(12), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(13, model.getMixesCount(13), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(14, model.getMixesCount(14), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(15, model.getMixesCount(15), { name="----", source=92, weight=100, multiplex=ADD })
+    end
+    if ProtoSub == 3 then	--proto EU_8 
       model.insertMix(4, model.getMixesCount(4), { name="---", source=92, weight=100, multiplex=ADD })
       model.insertMix(5, model.getMixesCount(5), { name="---", source=92, weight=100, multiplex=ADD })
       model.insertMix(6, model.getMixesCount(6), { name="---", source=92, weight=100, multiplex=ADD })
@@ -936,6 +1006,12 @@ local function applySettings()
       model.insertMix(9, model.getMixesCount(9), { name="", source=92, weight=100, multiplex=ADD })
     end
     if ProtoSub == 1 then	--proto FY319 
+      model.insertMix(4, model.getMixesCount(4), { name="FLIP", source=97, weight=100, multiplex=ADD })
+      model.insertMix(5, model.getMixesCount(5), { name="RTH", source=92, weight=100, multiplex=ADD })
+      model.insertMix(6, model.getMixesCount(6), { name="HEADLESS", source=91, weight=100, multiplex=ADD })
+      model.insertMix(7, model.getMixesCount(7), { name="EXPERT", source=92, weight=100, multiplex=ADD })
+      model.insertMix(8, model.getMixesCount(8), { name="CALIBRATE", source=92, weight=100, multiplex=ADD })
+      model.insertMix(9, model.getMixesCount(9), { name="", source=92, weight=100, multiplex=ADD })
     end
   elseif ProtoId == 20 then
     if ProtoSub == 0 then	--proto SFHSS 
@@ -993,6 +1069,14 @@ local function applySettings()
       model.insertMix(6, model.getMixesCount(6), { name="", source=92, weight=100, multiplex=ADD })
     end
     if ProtoSub == 2 then	--proto X5C1 
+      model.insertMix(4, model.getMixesCount(4), { name="FLIP", source=97, weight=100, multiplex=ADD })
+      model.insertMix(5, model.getMixesCount(5), { name="LED", source=95, weight=100, multiplex=ADD })
+      model.insertMix(6, model.getMixesCount(6), { name="PICTURE", source=92, weight=100, multiplex=ADD })
+      model.insertMix(7, model.getMixesCount(7), { name="VIDEO", source=92, weight=100, multiplex=ADD })
+      model.insertMix(8, model.getMixesCount(8), { name="HEADLESS", source=91, weight=100, multiplex=ADD })
+      model.insertMix(9, model.getMixesCount(9), { name="RTH", source=92, weight=100, multiplex=ADD })
+      model.insertMix(10, model.getMixesCount(10), { name="CAL", source=92, weight=100, multiplex=ADD })
+      model.insertMix(11, model.getMixesCount(11), { name="", source=92, weight=100, multiplex=ADD })
     end
     if ProtoSub == 3 then	--proto FQ777_951 
       model.insertMix(4, model.getMixesCount(4), { name="FLIP", source=97, weight=100, multiplex=ADD })
@@ -1056,9 +1140,9 @@ local function applySettings()
       model.insertMix(12, model.getMixesCount(12), { name="CH13", source=defaultChannel(12), weight=100, multiplex=ADD })
       model.insertMix(13, model.getMixesCount(13), { name="Reset/Bind", source=92, weight=100, multiplex=ADD })
     end
-  elseif ProtoId == 28 then
-    if ProtoSub == 0 then	--proto Q2X2 
+    if ProtoSub == 4 then	--proto LQI_OUT 
     end
+  elseif ProtoId == 28 then
     if ProtoSub == 10 then	--proto Q282 
       model.insertMix(4, model.getMixesCount(4), { name="FLIP", source=97, weight=100, multiplex=ADD })
       model.insertMix(5, model.getMixesCount(5), { name="LED", source=95, weight=100, multiplex=ADD })
@@ -1122,6 +1206,10 @@ local function applySettings()
       model.insertMix(7, model.getMixesCount(7), { name="", source=92, weight=100, multiplex=ADD })
     end
     if ProtoSub == 5 then	--proto W6_HEL_I 
+      model.insertMix(4, model.getMixesCount(4), { name="GEAR", source=92, weight=100, multiplex=ADD })
+      model.insertMix(5, model.getMixesCount(5), { name="COL", source=92, weight=100, multiplex=ADD })
+      model.insertMix(6, model.getMixesCount(6), { name="GYRO", source=92, weight=100, multiplex=ADD })
+      model.insertMix(7, model.getMixesCount(7), { name="", source=92, weight=100, multiplex=ADD })
     end
   elseif ProtoId == 30 then
     if ProtoSub == 0 then	--proto Q303 
@@ -1153,6 +1241,23 @@ local function applySettings()
       model.insertMix(4, model.getMixesCount(4), { name="ARM", source=92, weight=100, multiplex=ADD })
       model.insertMix(5, model.getMixesCount(5), { name="FLIP", source=97, weight=100, multiplex=ADD })
       model.insertMix(6, model.getMixesCount(6), { name="", source=92, weight=100, multiplex=ADD })
+    end
+  elseif ProtoId == 31 then
+    if ProtoSub == 0 then	--proto GW008 
+      model.insertMix(4, model.getMixesCount(4), { name="", source=92, weight=100, multiplex=ADD })
+      model.insertMix(5, model.getMixesCount(5), { name="FLIP", source=97, weight=100, multiplex=ADD })
+      model.insertMix(6, model.getMixesCount(6), { name="", source=92, weight=100, multiplex=ADD })
+    end
+  elseif ProtoId == 32 then
+    if ProtoSub == 0 then	--proto DM002 
+      model.insertMix(4, model.getMixesCount(4), { name="FLIP", source=97, weight=100, multiplex=ADD })
+      model.insertMix(5, model.getMixesCount(5), { name="LED", source=95, weight=100, multiplex=ADD })
+      model.insertMix(6, model.getMixesCount(6), { name="CAMERA1", source=92, weight=100, multiplex=ADD })
+      model.insertMix(7, model.getMixesCount(7), { name="CAMERA2", source=92, weight=100, multiplex=ADD })
+      model.insertMix(8, model.getMixesCount(8), { name="HEADLESS", source=91, weight=100, multiplex=ADD })
+      model.insertMix(9, model.getMixesCount(9), { name="RTH", source=92, weight=100, multiplex=ADD })
+      model.insertMix(10, model.getMixesCount(10), { name="RATE_LOW", source=92, weight=100, multiplex=ADD })
+      model.insertMix(11, model.getMixesCount(11), { name="", source=92, weight=100, multiplex=ADD })
     end
   elseif ProtoId == 39 then
     if ProtoSub == 0 then	--proto HM830 
@@ -1199,6 +1304,13 @@ local function applySettings()
   elseif ProtoId == 56 then
     if ProtoSub == 0 then	--proto INAV 
     end
+  elseif ProtoId == 57 then
+    if ProtoSub == 0 then	--proto E012 
+      model.insertMix(4, model.getMixesCount(4), { name="FLIP", source=97, weight=100, multiplex=ADD })
+      model.insertMix(5, model.getMixesCount(5), { name="HEADLESS", source=91, weight=100, multiplex=ADD })
+      model.insertMix(6, model.getMixesCount(6), { name="RTH", source=92, weight=100, multiplex=ADD })
+      model.insertMix(7, model.getMixesCount(7), { name="", source=92, weight=100, multiplex=ADD })
+    end
   elseif ProtoId == 58 then
     if ProtoSub == 0 then	--proto FBL100 
       model.insertMix(4, model.getMixesCount(4), { name=" ? ", source=92, weight=100, multiplex=ADD })
@@ -1241,6 +1353,51 @@ local function applySettings()
       model.insertMix(8, model.getMixesCount(8), { name="MODE 2", source=92, weight=100, multiplex=ADD })
       model.insertMix(9, model.getMixesCount(9), { name="---", source=92, weight=100, multiplex=ADD })
       model.insertMix(10, model.getMixesCount(10), { name="", source=92, weight=100, multiplex=ADD })
+    end
+  elseif ProtoId == 60 then
+    if ProtoSub == 0 then	--proto V3 
+      model.insertMix(4, model.getMixesCount(4), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(5, model.getMixesCount(5), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(6, model.getMixesCount(6), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(7, model.getMixesCount(7), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(8, model.getMixesCount(8), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(9, model.getMixesCount(9), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(10, model.getMixesCount(10), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(11, model.getMixesCount(11), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(12, model.getMixesCount(12), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(13, model.getMixesCount(13), { name="Reset/Bind", source=92, weight=100, multiplex=ADD })
+      model.insertMix(14, model.getMixesCount(14), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(15, model.getMixesCount(15), { name="----", source=92, weight=100, multiplex=ADD })
+    end
+    if ProtoSub == 1 then	--proto V3_TELEMETRY 
+    end
+    if ProtoSub == 6 then	--proto SET_FAIL_SAFE 
+      model.insertMix(4, model.getMixesCount(4), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(5, model.getMixesCount(5), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(6, model.getMixesCount(6), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(7, model.getMixesCount(7), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(8, model.getMixesCount(8), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(9, model.getMixesCount(9), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(10, model.getMixesCount(10), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(11, model.getMixesCount(11), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(12, model.getMixesCount(12), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(13, model.getMixesCount(13), { name="Reset/Bind", source=92, weight=100, multiplex=ADD })
+      model.insertMix(14, model.getMixesCount(14), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(15, model.getMixesCount(15), { name="----", source=92, weight=100, multiplex=ADD })
+    end
+    if ProtoSub == 7 then	--proto UNBIND 
+      model.insertMix(4, model.getMixesCount(4), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(5, model.getMixesCount(5), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(6, model.getMixesCount(6), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(7, model.getMixesCount(7), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(8, model.getMixesCount(8), { name="---", source=92, weight=100, multiplex=ADD })
+      model.insertMix(9, model.getMixesCount(9), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(10, model.getMixesCount(10), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(11, model.getMixesCount(11), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(12, model.getMixesCount(12), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(13, model.getMixesCount(13), { name="Reset/Bind", source=92, weight=100, multiplex=ADD })
+      model.insertMix(14, model.getMixesCount(14), { name="----", source=92, weight=100, multiplex=ADD })
+      model.insertMix(15, model.getMixesCount(15), { name="----", source=92, weight=100, multiplex=ADD })
     end
   end
 

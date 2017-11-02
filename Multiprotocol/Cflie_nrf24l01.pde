@@ -13,7 +13,7 @@
  along with Deviation.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#if defined(CFlie_NRF24L01_INO)
+#if defined(CFLIE_NRF24L01_INO)
 #include "iface_nrf24l01.h"
 
 #define BIND_COUNT 60

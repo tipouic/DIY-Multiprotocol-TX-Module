@@ -97,6 +97,9 @@ uint16_t initFrSky_2way()
 {
 	Frsky_init_hop();
 	packet_count=0;
+	#if defined TELEMETRY
+		init_frskyd_link_telemetry();
+	#endif
 	if(IS_AUTOBIND_FLAG_on)
 	{
 		frsky2way_init(1);
@@ -104,8 +107,7 @@ uint16_t initFrSky_2way()
 	}
 	else
 	{
-		frsky2way_init(0);
-		state = FRSKY_DATA2;
+		state = FRSKY_BIND_DONE;
 	}
 	return 10000;
 }	
@@ -120,7 +122,10 @@ uint16_t ReadFrSky_2way()
 		CC2500_WriteReg(CC2500_23_FSCAL3, 0x89);		
 		CC2500_Strobe(CC2500_SFRX);//0x3A
 		CC2500_WriteData(packet, packet[0]+1);
-		state++;
+		if(IS_BIND_DONE_on)
+			state = FRSKY_BIND_DONE;
+		else
+			state++;
 		return 9000;
 	}
 	if (state == FRSKY_BIND_DONE)

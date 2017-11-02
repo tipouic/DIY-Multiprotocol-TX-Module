@@ -1,0 +1,15 @@
+Mosi	miso
+CS		SCK
+GND		3.3v
+RX		boots
+Tx		X
+
+
+
+A7105
+CC2500
+CYRF6936
+NRF24L01
+	XN297
+	LT8900
+	HS6200

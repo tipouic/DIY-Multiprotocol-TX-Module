@@ -61,12 +61,32 @@ CH1|CH2|CH3|CH4|CH5|CH6|CH7
  ? | ? | ? | ? | ? | ? | ? 
 
 ##NRF24L01 RF Module
+###BAYANG
+Models: EAchine H8(C) mini, BayangToys X6/X7/X9, JJRC JJ850, Floureon H101 ...
+
+Autobind protocol
+
+CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10
+---|---|---|---|---|---|---|---|---|----
+A|E|T|R|FLIP|RTH|PICTURE|VIDEO|HEADLESS|INVERTED
+
+####Sub_protocol IRDRONE
+####Sub_protocol X16_AH
+
 ###BLUEFLY
 Autobind
 
 CH1|CH2|CH3|CH4|CH5|CH6
 ---|---|---|---|---|---
 A|E|T|R|GEAR|PITCH
+
+###CABELL
+CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12|CH13|CH14|CH15|CH16
+---|---|---|---|---|---|---|---|---|----|----|----|----|----|----|----
+CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12|CH13|CH14|CH15|CH16
+
+####Sub_protocol SET_FAIL_SAFE
+####Sub_protocol UNBIND
 
 ###CFLIE
 Modele: CrazyFlie Nano quad
@@ -76,6 +96,13 @@ Autobind
 CH1|CH2|CH3|CH4
 ---|---|---|---
 A|E|T|R
+
+###E012
+Autobind
+
+CH1|CH2|CH3|CH4|CH5|CH6|CH7
+---|---|---|---|---|---|---
+A|E|T|R|FLIP|HEADLESS|RTH
 
 ###ESKY150
 
@@ -99,6 +126,21 @@ Same channels assignement as above.
 CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
 ---|---|---|---|---|---|---|---
 A|E|T|R|CH5|CH6|CH7|CH8
+
+###GW008
+Modele: There are 3 versions of this small quad, this protocol is for the one with a XNS104 IC in the stock Tx and PAN159CY IC in the quad.
+The xn297 version is compatible with the CX10 protocol (green pcb).
+The LT8910 version is not supported yet.
+
+This PR also includes enhanced packet mode support for xn297 emulation (tx & rx).
+
+Forum thread: https://www.deviationtx.com/forum/protocol-development/6420-global-drone-skull-drone-or-gw008
+
+Autobind
+
+CH1|CH2|CH3|CH4|CH5|CH6
+---|---|---|---
+A|E|T|R||FLIP
 
 ###HM830
 Modele: HM Hobby HM830 RC Paper Airplane

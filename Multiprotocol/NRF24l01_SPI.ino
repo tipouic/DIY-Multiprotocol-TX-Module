@@ -134,6 +134,7 @@ void NRF24L01_SetBitrate(uint8_t bitrate)
     // Bit 0 goes to RF_DR_HIGH, bit 1 - to RF_DR_LOW
     rf_setup = (rf_setup & 0xD7) | ((bitrate & 0x02) << 4) | ((bitrate & 0x01) << 3);
     NRF24L01_WriteReg(NRF24L01_06_RF_SETUP, rf_setup);
+    prev_power = NRF_POWER_0;          // Power setting was just reset.  This will get updated in the next call to SetPower
 }
 
 /*
@@ -160,7 +161,11 @@ void NRF24L01_SetPower()
 {
 	uint8_t power=NRF_BIND_POWER;
 	if(IS_BIND_DONE_on)
-		power=IS_POWER_FLAG_on?NRF_HIGH_POWER:NRF_LOW_POWER;
+		#ifdef NRF24L01_ENABLE_LOW_POWER
+			power=IS_POWER_FLAG_on?NRF_HIGH_POWER:NRF_LOW_POWER;
+		#else
+			power=NRF_HIGH_POWER;
+		#endif
 	if(IS_RANGE_FLAG_on)
 		power=NRF_POWER_0;
 	rf_setup = (rf_setup & 0xF9) | (power << 1);
@@ -278,10 +283,10 @@ static uint8_t bit_reverse(uint8_t b_in)
 }
 
 static const uint16_t polynomial = 0x1021;
-static uint16_t crc16_update(uint16_t crc, uint8_t a)
+static uint16_t crc16_update(uint16_t crc, uint8_t a, uint8_t bits)
 {
 	crc ^= a << 8;
-    for (uint8_t i = 0; i < 8; ++i)
+    while(bits--)
         if (crc & 0x8000)
             crc = (crc << 1) ^ polynomial;
 		else
@@ -370,7 +375,7 @@ void XN297_WritePayload(uint8_t* msg, uint8_t len)
 		uint8_t offset = xn297_addr_len < 4 ? 1 : 0;
 		uint16_t crc = 0xb5d2;
 		for (uint8_t i = offset; i < last; ++i)
-			crc = crc16_update(crc, buf[i]);
+			crc = crc16_update(crc, buf[i], 8);
 		if(xn297_scramble_enabled)
 			crc ^= pgm_read_word(&xn297_crc_xorout_scrambled[xn297_addr_len - 3 + len]);
 		else
@@ -379,6 +384,76 @@ void XN297_WritePayload(uint8_t* msg, uint8_t len)
 		buf[last++] = crc & 0xff;
 	}
 	NRF24L01_WritePayload(buf, last);
+}
+
+
+void XN297_WriteEnhancedPayload(uint8_t* msg, uint8_t len, uint8_t noack, uint16_t crc_xorout)
+{
+	uint8_t packet[32];
+	uint8_t scramble_index=0;
+	uint8_t last = 0;
+	static uint8_t pid=0;
+
+	// address
+	if (xn297_addr_len < 4)
+	{
+		// If address length (which is defined by receive address length)
+		// is less than 4 the TX address can't fit the preamble, so the last
+		// byte goes here
+		packet[last++] = 0x55;
+	}
+	for (uint8_t i = 0; i < xn297_addr_len; ++i)
+	{
+		packet[last] = xn297_tx_addr[xn297_addr_len-i-1];
+		if(xn297_scramble_enabled)
+			packet[last] ^= xn297_scramble[scramble_index++];
+		last++;
+	}
+
+	// pcf
+	packet[last] = (len << 1) | (pid>>1);
+	if(xn297_scramble_enabled)
+		packet[last] ^= xn297_scramble[scramble_index++];
+	last++;
+	packet[last] = (pid << 7) | (noack << 6);
+
+	// payload
+	packet[last]|= bit_reverse(msg[0]) >> 2; // first 6 bit of payload
+	if(xn297_scramble_enabled)
+		packet[last] ^= xn297_scramble[scramble_index++];
+
+	for (uint8_t i = 0; i < len-1; ++i)
+	{
+		last++;
+		packet[last] = (bit_reverse(msg[i]) << 6) | (bit_reverse(msg[i+1]) >> 2);
+		if(xn297_scramble_enabled)
+			packet[last] ^= xn297_scramble[scramble_index++];
+	}
+
+	last++;
+	packet[last] = bit_reverse(msg[len-1]) << 6; // last 2 bit of payload
+	if(xn297_scramble_enabled)
+		packet[last] ^= xn297_scramble[scramble_index++] & 0xc0;
+
+	// crc
+	if (xn297_crc)
+	{
+		uint8_t offset = xn297_addr_len < 4 ? 1 : 0;
+		uint16_t crc = 0xb5d2;
+		for (uint8_t i = offset; i < last; ++i)
+			crc = crc16_update(crc, packet[i], 8);
+		crc = crc16_update(crc, packet[last] & 0xc0, 2);
+		crc ^= crc_xorout;
+
+		packet[last++] |= (crc >> 8) >> 2;
+		packet[last++] = ((crc >> 8) << 6) | ((crc & 0xff) >> 2);
+		packet[last++] = (crc & 0xff) << 6;
+	}
+	NRF24L01_WritePayload(packet, last);
+
+	pid++;
+	if(pid>3)
+		pid=0;
 }
 
 void XN297_ReadPayload(uint8_t* msg, uint8_t len)
@@ -393,7 +468,26 @@ void XN297_ReadPayload(uint8_t* msg, uint8_t len)
 	}
 }
 
-// End of XN297 emulation
+uint8_t XN297_ReadEnhancedPayload(uint8_t* msg, uint8_t len)
+{
+	uint8_t buffer[32];
+	uint8_t pcf_size; // pcf payload size
+	NRF24L01_ReadPayload(buffer, len+2); // pcf + payload
+	pcf_size = buffer[0];
+	if(xn297_scramble_enabled)
+		pcf_size ^= xn297_scramble[xn297_addr_len];
+	pcf_size = pcf_size >> 1;
+	for(int i=0; i<len; i++)
+	{
+		msg[i] = bit_reverse((buffer[i+1] << 2) | (buffer[i+2] >> 6));
+		if(xn297_scramble_enabled)
+			msg[i] ^= bit_reverse((xn297_scramble[xn297_addr_len+i+1] << 2) | 
+									(xn297_scramble[xn297_addr_len+i+2] >> 6));
+	}
+	return pcf_size;
+}
+ 
+ // End of XN297 emulation
 
 ///////////////
 // LT8900 emulation layer
@@ -527,14 +621,14 @@ uint8_t LT8900_ReadPayload(uint8_t* msg, uint8_t len)
 	//Check len
 	if(LT8900_Flags&_BV(LT8900_PACKET_LENGTH_EN))
 	{
-		crc=crc16_update(crc,buffer[pos]);
+		crc=crc16_update(crc,buffer[pos],8);
 		if(bit_reverse(len)!=buffer[pos++])
 			return 0; // wrong len...
 	}
 	//Decode message 
 	for(i=0;i<len;i++)
 	{
-		crc=crc16_update(crc,buffer[pos]);
+		crc=crc16_update(crc,buffer[pos],8);
 		msg[i]=bit_reverse(buffer[pos++]);
 	}
 	//Check CRC
@@ -556,14 +650,14 @@ void LT8900_WritePayload(uint8_t* msg, uint8_t len)
 	{
 		tmp=bit_reverse(len);
 		buffer[pos++]=tmp;
-		crc=crc16_update(crc,tmp);
+		crc=crc16_update(crc,tmp,8);
 	}
 	//Add payload
 	for(i=0;i<len;i++)
 	{
 		tmp=bit_reverse(msg[i]);
 		buffer[pos++]=tmp;
-		crc=crc16_update(crc,tmp);
+		crc=crc16_update(crc,tmp,8);
 	}
 	//Add CRC
 	if(LT8900_Flags&_BV(LT8900_CRC_ON))
@@ -587,5 +681,100 @@ void LT8900_WritePayload(uint8_t* msg, uint8_t len)
 	//Send everything
 	NRF24L01_WritePayload(LT8900_buffer+LT8900_buffer_start,pos_final+pos-LT8900_buffer_start);
 }
-// End of LT8900 emulation
+ // End of LT8900 emulation
+
+///////////////
+// HS6200 emulation layer
+static uint8_t HS6200_crc;
+static uint16_t HS6200_crc_init;
+static const uint16_t HS6200_crc_poly = 0x1021;
+static uint8_t HS6200_tx_addr[5];
+
+static const uint8_t HS6200_scramble[] = {
+    0x80,0xf5,0x3b,0x0d,0x6d,0x2a,0xf9,0xbc,
+    0x51,0x8e,0x4c,0xfd,0xc1,0x65,0xd0
+}; // todo: find all 32 bytes
+
+static uint16_t HS6200_crc_update(uint16_t crc, uint8_t byte, uint8_t bits)
+{
+	crc = crc ^ (byte << 8);
+	while(bits--)
+		if((crc & 0x8000) == 0x8000) 
+			crc = (crc << 1) ^ HS6200_crc_poly;
+		else 
+			crc = crc << 1;
+	return crc;
+}
+
+static void HS6200_SetTXAddr(const uint8_t* addr, uint8_t len)
+{
+	NRF24L01_WriteRegisterMulti(NRF24L01_10_TX_ADDR, addr, len);
+	// precompute address crc
+	HS6200_crc_init = 0xffff;
+	for(int i=0; i<len; i++)
+		HS6200_crc_init = HS6200_crc_update(HS6200_crc_init, addr[len-1-i], 8);
+	memcpy(HS6200_tx_addr, addr, len);
+}
+
+static uint16_t HS6200_calc_crc(uint8_t* msg, uint8_t len)
+{
+	uint8_t pos;
+	uint16_t crc = HS6200_crc_init;
+	
+	// pcf + payload
+	for(pos=0; pos < len-1; pos++) { 
+		crc = HS6200_crc_update(crc, msg[pos], 8);
+	}
+	// last byte (1 bit only)
+	if(len > 0) {
+		crc = HS6200_crc_update(crc, msg[pos+1], 1);
+	}
+	
+	return crc;
+}
+
+void HS6200_Configure(uint8_t flags)
+{
+	HS6200_crc = !!(flags & _BV(NRF24L01_00_EN_CRC));
+	flags &= ~(_BV(NRF24L01_00_EN_CRC) | _BV(NRF24L01_00_CRCO));
+	NRF24L01_WriteReg(NRF24L01_00_CONFIG, flags & 0xff);      
+}
+
+void HS6200_WritePayload(uint8_t* msg, uint8_t len)
+{
+	uint8_t payload[32];
+	const uint8_t no_ack = 1; // never ask for an ack
+	static uint8_t pid;
+	uint8_t pos = 0;
+	
+	// guard bytes
+	payload[pos++] = HS6200_tx_addr[0]; // todo: manage custom guard bytes
+	payload[pos++] = HS6200_tx_addr[0]; // todo: manage custom guard bytes
+	
+	// packet control field
+	payload[pos++] = ((len & 0x3f) << 2) | (pid & 0x03);
+	payload[pos] = (no_ack & 0x01) << 7;
+	pid++;
+	
+	// scrambled payload
+	if(len > 0) {
+	payload[pos++] |= (msg[0] ^ HS6200_scramble[0]) >> 1; 
+	for(uint8_t i=1; i<len; i++)
+		payload[pos++] = ((msg[i-1] ^ HS6200_scramble[i-1]) << 7) | ((msg[i] ^ HS6200_scramble[i]) >> 1);
+	payload[pos] = (msg[len-1] ^ HS6200_scramble[len-1]) << 7; 
+	}
+	
+	// crc
+	if(HS6200_crc) {
+		uint16_t crc = HS6200_calc_crc(&payload[2], len+2);
+		uint8_t hcrc = crc >> 8;
+		uint8_t lcrc = crc & 0xff;
+		payload[pos++] |= (hcrc >> 1);
+		payload[pos++] = (hcrc << 7) | (lcrc >> 1);
+		payload[pos++] = lcrc << 7;
+	}
+	
+	NRF24L01_WritePayload(payload, pos);
+}
+// End of HS6200 emulation
 #endif

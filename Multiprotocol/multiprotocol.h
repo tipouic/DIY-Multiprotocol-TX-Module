@@ -19,7 +19,7 @@
 #define VERSION_MAJOR		1
 #define VERSION_MINOR		1
 #define VERSION_REVISION	6
-#define VERSION_PATCH_LEVEL	12
+#define VERSION_PATCH_LEVEL	21
 //******************
 // Protocols				max 31 x2
 //******************
@@ -30,6 +30,7 @@ enum PROTOCOLS
 	
 	MODE_FBL100		= 59,	// =>NRF24L01
 	MODE_UDI		= 60,	// =>NRF24L01
+	MODE_CABELL		= 61,	// =>NRF24L01
 	
 	MODE_HM830		= 40,	// =>NRF24L01
 	MODE_CFLIE		= 51,	// =>NRF24L01
@@ -37,6 +38,7 @@ enum PROTOCOLS
 	MODE_ESKY150	= 53,	// =>NRF24L01
 	MODE_BlueFly	= 54,	// =>NRF24L01
 	MODE_NE260		= 55,	// =>NRF24L01
+	MODE_E012		= 58,	// =>NRF24L01
 	
 	MODE_INAV		= 57,	// =>NRF24L01
 	
@@ -72,6 +74,8 @@ enum PROTOCOLS
 	MODE_Q2X2		= 29,	// =>NRF24L01, extension of CX-10 protocol
 	MODE_WK2x01		= 30,	// =>CYRF6936
 	MODE_Q303		= 31,	// =>NRF24L01
+	MODE_GW008		= 32,	// =>NRF24L01
+	MODE_DM002		= 33,	// =>NRF24L01
 };
 enum Flysky
 {
@@ -87,6 +91,7 @@ enum AFHDS2A
 	PPM_IBUS = 1,
 	PWM_SBUS = 2,
 	PPM_SBUS = 3,
+	LQI_OUT  = 4,
 };
 enum Hisky
 {
@@ -143,12 +148,17 @@ enum CG023
 {
     CG023 = 0,
     YD829 = 1,
-    H8_3D = 2
+    H8_3D = 2,
+    H20H  = 3,
+	H20MINI = 4,
+	H30MINI = 5,
 };
 enum BAYANG
 {
     BAYANG	= 0,
-    H8S3D	= 1
+    H8S3D	= 1,
+	X16_AH  = 2,
+	IRDRONE	= 3,
 };
 enum MT99XX
 {
@@ -215,7 +225,12 @@ enum HUBSAN
 	H301	= 1,
 	H501	= 2
 };
-
+enum CABELL {
+	CABELL_V3				= 0,
+	CABELL_V3_TELEMETRY		= 1,
+	CABELL_SET_FAIL_SAFE	= 6,
+	CABELL_UNBIND			= 7
+ };
 enum UDI
 {
     U816_V1 = 0,
@@ -233,6 +248,13 @@ enum scanner
 	SC_A7105	=1,
 	SC_CC25		=2,
 	SC_NRF		=3,
+};
+enum ir
+{
+	SH_602X			= 0,
+	SYMA_S107_32	= 1,
+	WLTOYS_IR		= 2,
+	// LEGO			= 3,
 };
 
 #define NONE 		0
@@ -328,11 +350,17 @@ enum MultiPacketTypes {
 #define INPUT_SIGNAL_on		protocol_flags2 |= _BV(5)
 #define IS_INPUT_SIGNAL_on	( ( protocol_flags2 & _BV(5) ) !=0 )
 #define IS_INPUT_SIGNAL_off	( ( protocol_flags2 & _BV(5) ) ==0 )
-//CH16
+//Bind from channel
 #define BIND_CH_PREV_off	protocol_flags2 &= ~_BV(6)
 #define BIND_CH_PREV_on		protocol_flags2 |= _BV(6)
 #define IS_BIND_CH_PREV_on	( ( protocol_flags2 & _BV(6) ) !=0 )
 #define IS_BIND_CH_PREV_off	( ( protocol_flags2 & _BV(6) ) ==0 )
+//Wait for bind
+#define WAIT_BIND_off		protocol_flags2 &= ~_BV(7)
+#define WAIT_BIND_on		protocol_flags2 |= _BV(7)
+#define IS_WAIT_BIND_on		( ( protocol_flags2 & _BV(7) ) !=0 )
+#define IS_WAIT_BIND_off	( ( protocol_flags2 & _BV(7) ) ==0 )
+
 
 //********************
 //*** Blink timing ***
@@ -340,8 +368,11 @@ enum MultiPacketTypes {
 #define BLINK_BIND_TIME	100
 #define BLINK_SERIAL_TIME	500
 #define BLINK_PPM_TIME				1000
-#define BLINK_BAD_PROTO_TIME_LOW	1000
 #define BLINK_BAD_PROTO_TIME_HIGH	50
+#define BLINK_BAD_PROTO_TIME_LOW	1000
+#define BLINK_WAIT_BIND_TIME_HIGH	1000
+#define BLINK_WAIT_BIND_TIME_LOW	100
+
 
 //*******************
 //***  AUX flags  ***
@@ -426,7 +457,7 @@ enum CC2500_POWER
 	CC2500_POWER_16 = 0xFE,	//   0dbm
 	CC2500_POWER_17 = 0xFF	//  +1dbm
 };
-#define CC2500_HIGH_POWER	CC2500_POWER_16
+#define CC2500_HIGH_POWER	CC2500_POWER_17
 #define CC2500_LOW_POWER	CC2500_POWER_13
 #define CC2500_RANGE_POWER	CC2500_POWER_1
 #define CC2500_BIND_POWER	CC2500_POWER_1
@@ -513,6 +544,9 @@ Serial: 100000 Baud 8e2      _ xxxx xxxx p --
 					Q2X2		29
 					WK2x01		30
 					Q303		31
+					GW008		32
+					DM002		33
+					CABELL		61
    BindBit=>		0x80	1=Bind/0=No
    AutoBindBit=>	0x40	1=Yes /0=No
    RangeCheck=>		0x20	1=Yes /0=No
@@ -566,8 +600,10 @@ Serial: 100000 Baud 8e2      _ xxxx xxxx p --
 			YD829		1
 			H8_3D		2
 		sub_protocol==BAYANG
-			BAYANG			0
-			H8S3D			1
+			BAYANG		0
+			H8S3D		1
+			X16_AH		2
+			IRDRONE		3
 		sub_protocol==MT99XX
 			MT99		0
 			H7			1
@@ -614,6 +650,11 @@ Serial: 100000 Baud 8e2      _ xxxx xxxx p --
 			CX35		1
 			CX10D		2
 			CX10WD		3
+		sub_protocol==CABELL
+			CABELL_V3				0,
+			CABELL_V3_TELEMETRY		1,
+			CABELL_SET_FAIL_SAFE	6,
+			CABELL_UNBIND			7
 
     Power value => 0x80	0=High/1=Low
   Stream[3]   = option_protocol;
@@ -644,6 +685,7 @@ Serial: 100000 Baud 8e2      _ xxxx xxxx p --
    0x02 = Serial mode enabled
    0x04 = protocol is valid
    0x08 = module is in binding mode
+   0x10 = module waits a bind event to load the protocol
    [3] major
    [4] minor
    [5] revision
@@ -673,20 +715,20 @@ Serial: 100000 Baud 8e2      _ xxxx xxxx p --
 
    [4-xx] data
 
-
 Type = 0x01 Multimodule Status:
-   [4] Flags
-   0x01 = Input signal detected
-   0x02 = Serial mode enabled
-   0x04 = protocol is valid
-   0x08 = module is in binding mode
-   [5] major
-   [6] minor
-   [7] revision
-   [8] patchlevel,
-   version of multi code, should be displayed as major.minor.revision.patchlevel
+	[4] Flags
+	0x01 = Input signal detected
+	0x02 = Serial mode enabled
+	0x04 = protocol is valid
+	0x08 = module is in binding mode
+	0x10 = module waits a bind event to load the protocol
+	[5] major
+	[6] minor
+	[7] revision
+	[8] patchlevel,
+	version of multi code, should be displayed as major.minor.revision.patchlevel
 
-   more information can be added by specifing a longer length of the type, the TX will just ignore these bytes
+	more information can be added by specifing a longer length of the type, the TX will just ignore these bytes
 
 
 Type 0x02 Frksy S.port telemetry
@@ -696,18 +738,18 @@ Type 0x03 Frsky Hub telemetry
 
 
 Type 0x04 Spektrum telemetry data
-   data[0] RSSI
-   data[1-15] telemetry data
+	data[0] RSSI
+	data[1-15] telemetry data
 
 Type 0x05 DSM bind data
 	data[0-16] DSM bind data
 
-    technically DSM bind data is only 10 bytes but multi send 16
-    like with telemtry, check length field)
+	technically DSM bind data is only 10 bytes but multi send 16
+	like with telemetry, check length field)
 
 Type 0x06 Flysky AFHDS2 telemetry data
-   length: 29
-   data[0] = RSSI value
-   data[1-28] telemetry data
+	length: 29
+	data[0] = RSSI value
+	data[1-28] telemetry data
 
 */

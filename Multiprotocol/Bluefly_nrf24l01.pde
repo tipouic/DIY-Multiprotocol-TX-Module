@@ -13,7 +13,7 @@
  along with Deviation.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#if defined(BlueFly_NRF24L01_INO)
+#if defined(BLUEFLY_NRF24L01_INO)
 #include "iface_nrf24l01.h"
 
 #define BIND_BlueFly_COUNT 800

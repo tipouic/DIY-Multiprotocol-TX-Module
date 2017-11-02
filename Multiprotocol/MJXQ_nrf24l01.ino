@@ -27,6 +27,16 @@
 #define MJXQ_ADDRESS_LENGTH	5
 
 // haven't figured out txid<-->rf channel mapping for MJX models
+/*
+static const struct {
+    u8 txid[3];
+    u8 rfchan[RF_NUM_CHANNELS];
+} mjx_tx_rf_map[] = {{{0xF8, 0x4F, 0x1C}, {0x0A, 0x46, 0x3A, 0x42}},
+                     {{0xC8, 0x6E, 0x02}, {0x0A, 0x3C, 0x36, 0x3F}},
+                     {{0x48, 0x6A, 0x40}, {0x0A, 0x43, 0x36, 0x3F}}};
+
+            memcpy(rf_channels, mjx_tx_rf_map[Model.fixed_id % (sizeof(mjx_tx_rf_map)/sizeof(mjx_tx_rf_map[0]))].rfchan, sizeof(rf_channels));
+*/
 const uint8_t PROGMEM MJXQ_map_txid[][3] = {
 				{0xF8, 0x4F, 0x1C},
 				{0xC8, 0x6E, 0x02},

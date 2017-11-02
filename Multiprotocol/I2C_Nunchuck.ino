@@ -6,22 +6,33 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(1, 3, NEO_GRB + NEO_KHZ800);
 
 #define BUZZER_INIT LOW
 const uint8_t color[] = {
+//	rouge	vert	bleu	intensité
 	0,		255,	0,		200,	// 	VERT		
 	255,	255,	0,		200,	// 	rouge		
 	0,		0,		255,	200,	// 	BLEU		
 	255,	255,	255,	200,	//  BLANC		
 	255,	255,	0,		200,	// 	jaune		
 };
+#define COLOR_WRITE(nb) strip.setPixelColor(0, color[nb*4], color[nb*4+1], color[nb*4+2]); strip.setBrightness(color[nb*4+3]); strip.show()
 
+#define SEUIL_B 10
+#define SEUIL_H 245
+uint8_t batteryTX = 255;
 
 #define WII_NUNCHUK_I2C_ADDRESS 0x52	// adresse I2C du nunchuck
-int chan;
-uint8_t tpsc=0, tpsz=0;
 uint8_t data[6];  //nunchuck
+int chan;	//id data
+int num_model=0;
+int num_trim[] = {0,0};
 
+uint8_t tpsc=0, tpsz=0;
 boolean c=false, z=false,	 cl=false, op=true, zl=false;
-uint8_t nunchuck_flags=0;
+
 int menu=1;	// default hold trottle
+#define eeprom_model 5
+#define eeprom_base 40
+
+uint8_t nunchuck_flags=0;
 #define CHG_DP_FLAG_on			nunchuck_flags |= _BV(0)
 #define CHG_DP_FLAG_off			nunchuck_flags &= ~_BV(0)
 #define IS_CHG_DP_FLAG_on		( ( nunchuck_flags & _BV(0) ) !=0 )
@@ -45,12 +56,10 @@ int menu=1;	// default hold trottle
 #define DUAL_FLAG_on		nunchuck_flags |= _BV(5)
 #define DUAL_FLAG_off	nunchuck_flags &= ~_BV(5)
 #define IS_DUAL_FLAG_on	( ( nunchuck_flags & _BV(5) ) !=0 )
-
-#define COLOR_WRITE(nb) strip.setPixelColor(0, color[nb*4], color[nb*4+1], color[nb*4+2]); strip.setBrightness(color[nb*4+3]); strip.show()
-
-#define SEUIL_B 10
-#define SEUIL_H 245
-uint8_t batteryTX = 255;
+//
+#define BIVOIE_on		nunchuck_flags |= _BV(5)
+#define BIVOIE_off	nunchuck_flags &= ~_BV(5)
+#define IS_BIVOIE_on	( ( nunchuck_flags & _BV(5) ) !=0 )
 
 // Channel value is converted to 16bit values
 uint16_t convert_channel_16b(uint16_t num, boolean inv=false) {
@@ -100,9 +109,31 @@ void nunchuck_init() {
 	nunchuck_read();
 	nunchuck_read();
 	
+	nunchuck_proto_config(0);
 	nunchuck_proto();
 }
 
+void nunchuck_proto_config(int config) {
+	// sav proto	/	model
+	if(config == 1) {
+		eeprom_write_byte(eeprom_model, num_model);
+		eeprom_write_byte(eeprom_base + num_model*5, MODE_SERIAL);
+	} else
+	// sav config
+	if(config == 2) {
+		eeprom_write_byte(eeprom_base + num_model*5 + 1, nunchuck_flags);
+		eeprom_write_byte(eeprom_base + num_model*5 + 2, num_trim[0]);
+		eeprom_write_byte(eeprom_base + num_model*5 + 3, num_trim[1]);
+	} else
+	//	lecture
+	{
+		num_model = eeprom_read_byte(eeprom_model);
+		MODE_SERIAL = eeprom_read_byte(eeprom_base + num_model*5);
+		nunchuck_flags = eeprom_read_byte(eeprom_base + num_model*5 + 1);
+		num_trim[0] = eeprom_read_byte(eeprom_base + num_model*5 + 2);
+		num_trim[1] = eeprom_read_byte(eeprom_base + num_model*5 + 3);
+	}
+}
 void nunchuck_proto() {
 	if(mode_select == MODE_SERIAL) {	mode_select=0;	} 
 	else {
@@ -110,15 +141,17 @@ void nunchuck_proto() {
 		modules_reset();		//reset all modules
 		mode_select--;
 	}
-	protocol		=	PPM_prot[mode_select].protocol;
+	protocol		=	NUN_prot[mode_select].protocol;
 	cur_protocol[1] = protocol;
-	sub_protocol   	=	PPM_prot[mode_select].sub_proto;
-	RX_num			=	PPM_prot[mode_select].rx_num;
-	option			=	PPM_prot[mode_select].option;
-	if(PPM_prot[mode_select].power)		POWER_FLAG_on;
-	if(PPM_prot[mode_select].autobind)	AUTOBIND_FLAG_on;
+	sub_protocol   	=	NUN_prot[mode_select].sub_proto;
+	RX_num			=	0;
+	if(NUN_prot[mode_select].rx_num != 0 ) { nbChannel = NUN_prot[mode_select].rx_num; }	// default 4
+	option			=	NUN_prot[mode_select].option;
+	if(NUN_prot[mode_select].power)		POWER_FLAG_on;
+	if(NUN_prot[mode_select].autobind)	AUTOBIND_FLAG_on;
 	mode_select++;
-
+	
+	modules_reset();
 	protocol_init();
 }
 
@@ -145,47 +178,88 @@ void nunchuck_update() {
 		double accelY = (data[3] << 2) + ((data[5] & (3 << 4 ) >> 4)) >> 2;	// av / ar
 		double accelZ = (data[4] << 2) + ((data[5] & (3 << 6 ) >> 6)) >> 2;	// haut / bas
 		
+		//	test touche pause
 		if((data[5] >> 1) & 1) { tpsz++; }
 		else if(tpsz>300) {
-			if(menu==0) {
-				menu = 1;	
-				Servo_data[THROTTLE] = (IS_POS_MID_FLAG_on) ? (SERIAL_MIN_125+SERIAL_MAX_125)/2 : SERIAL_MIN_125;
-			}
+			if(menu==0) {	menu = 1;	}
 			else if(menu==1 && (IS_POS_MID_FLAG_on && JY==127 or JY==0)) {	menu = 0;	}
+			Servo_data[THROTTLE] = (IS_POS_MID_FLAG_on) ? (SERIAL_MIN_125+SERIAL_MAX_125)/2 : SERIAL_MIN_125;
 			COLOR_WRITE(menu);
 			tpsz=0;
 		}
 		
 		//	attente retour au neutre pour les menus (evite fausse entree)
-		if(zl) { if(JX<SEUIL_H && JX>SEUIL_B && JY<SEUIL_H && JY>SEUIL_B && !((data[5] >> 0) & 1)) { zl = false; } }
-		//	fonctionnement + config
-		else if(menu == 0) {	//	normal (TX)
+		if(zl) { if(JX<SEUIL_H && JX>SEUIL_B && JY<SEUIL_H && JY>SEUIL_B && !((data[5] >> 0) & 1) && !((data[5] >> 1) & 1)) { zl = false; } }
+		//	fonctionnement normal (TX)
+		else if(menu == 0) {
 			// calcul appuis long sur boutton
 			if((data[5] >> 0) & 1) { tpsc++; }	// compte temps
 			else if(tpsc>300) { cl=!cl;	tpsc=0; }	// RAZ tps + déclaration appuis LONG
-			else if(tpsc) { c=!c;	tpsc=0; }	// RAZ tps + déclaration appuis COURT
+			else if(tpsc>10) { c=!c;	tpsc=0; }	// RAZ tps + déclaration appuis COURT
+			else { tpsc=0; }	// RAZ tps
 			
-			if(tpsz) { z=!z;	tpsz=0; }
+			if(tpsz>10) { z=!z;	tpsz=0; }
+			if(IS_BIVOIE_on) {
+				//			 acc						joystick
+				if(cl) {	JY = accelY; 	}	else {	accelX = JX;	}
+				JX = 0;
+				accelY = num_trim[0] + JY*num_trim[1]/100;
+			}
 		
 			Servo_data[THROTTLE]	=	convert_channel_16b(JY);
 		}
-		else if(menu == 1 && ((data[5] >> 0) & 1)) {	zl=true; menu=1;	COLOR_WRITE(menu);	}	//	secu moteur
-		else if(menu == 2) {	//	menu principal
-			if(JX > SEUIL_H)	{ zl=true; menu = 3; } else	// servo
-			if(JX < SEUIL_B)	{ zl=true; (IS_POS_MID_FLAG_on) ? POS_MID_FLAG_off : POS_MID_FLAG_on; } else	// position secu
-			if(JY > SEUIL_H)	{ zl=true; CHANGE_PROTOCOL_FLAG_on;	} else	// rebind
-			if(JY < SEUIL_B)	{  }	// vide
-			if(menu == 0 && ((data[5] >> 0) & 1)) {	zl=true; menu =0;	COLOR_WRITE(menu);	}
+		//	secu moteur
+		else if(menu == 1 && ((data[5] >> 0) & 1)) {
+			// appuis C
+			if((data[5] >> 0) & 1) { tpsc++; } else if(tpsc<10) { tpsc=0; }	// RAZ tps
+			
+			if(tpsc>10) { tpsc=0; zl=true; menu++; COLOR_WRITE(menu); }
 		}
-		else if(menu == 3) {	//	menu servo
-			if(JX > SEUIL_H)	{ zl=true; if(IS_INV_D_FLAG_on) { INV_D_FLAG_off; } else { INV_D_FLAG_on; } } else
-			if(JX < SEUIL_B)	{ zl=true; if(IS_CHG_DP_FLAG_on) { CHG_DP_FLAG_off; } else { CHG_DP_FLAG_on; } } else
-			if(JY > SEUIL_H)	{ zl=true; if(IS_INV_P_FLAG_on) { INV_P_FLAG_off; } else { INV_P_FLAG_on; } } else
-			if(JY < SEUIL_B)	{	// trim JX
-				zl=true; 
-				JX = accelX;
-			}
-			if(menu == 0 && ((data[5] >> 0) & 1)) {	zl=true; menu --;	COLOR_WRITE(menu);	}
+		//	menu principal
+		else if(menu == 2) {
+			// appuis C
+			if((data[5] >> 0) & 1) { tpsc++; } else if(tpsc<10) { tpsc=0; }	// RAZ tps
+			
+			// edit servo
+			if(JX > SEUIL_H)	{
+				// active option bivoies
+				if(tpsz>10) { tpsz=0; zl=true; if(IS_BIVOIE_on) { BIVOIE_off; } else { BIVOIE_on; } nunchuck_proto_config(2); } else
+				// position gaz (bas / milieu)
+				if(tpsc>10) { tpsc=0; zl=true; if(IS_POS_MID_FLAG_on) { POS_MID_FLAG_off; } else { POS_MID_FLAG_on; } nunchuck_proto_config(2); } else
+				if(accelX > SEUIL_H)	{ zl=true; if(IS_INV_D_FLAG_on) { INV_D_FLAG_off; } else { INV_D_FLAG_on; } nunchuck_proto_config(2); } else
+				if(accelX < SEUIL_B)	{ zl=true; if(IS_CHG_DP_FLAG_on) { CHG_DP_FLAG_off; } else { CHG_DP_FLAG_on; } nunchuck_proto_config(2); } else
+				if(accelY > SEUIL_H)	{ zl=true; if(IS_INV_P_FLAG_on) { INV_P_FLAG_off; } else { INV_P_FLAG_on; } nunchuck_proto_config(2); } else
+				// trim JX
+				if(accelY < SEUIL_B)	{
+					zl=true;
+					menu = 3;
+					COLOR_WRITE(menu);
+				}
+			} else	
+			// model		*****
+			if(JY < SEUIL_B)	{
+				if(accelX > SEUIL_H)	{ zl=true; num_model++; nunchuck_proto_config(1); } else
+				if(accelX < SEUIL_B)	{ zl=true; num_model--; nunchuck_proto_config(1); } else
+				
+				if(accelY > SEUIL_H)	{ zl=true; mode_select++; nunchuck_proto_config(1); } else
+				if(accelY < SEUIL_B)	{ zl=true; mode_select--; nunchuck_proto_config(1); }
+			} else	
+			// rebind
+			if(JY > SEUIL_H)	{ zl=true; CHANGE_PROTOCOL_FLAG_on;	} else
+			// option
+			if(JX < SEUIL_B)	{  }
+			if(tpsc > 300) {	zl=true; menu = 1;	COLOR_WRITE(menu);	}
+			
+			
+		}
+		//	menu servo
+		else if(menu == 3 || menu == 4) {
+			// appuis C
+			if((data[5] >> 0) & 1) { tpsc++; } else if(tpsc<10) { tpsc=0; }	// RAZ tps
+			if(tpsc>10) {	zl=true; menu = 2;	COLOR_WRITE(menu); nunchuck_proto_config(2);	}
+			
+			num_trim[menu-3] = JX;
+			accelY = num_trim[menu-3];
 		}
 		
 		//	sortie

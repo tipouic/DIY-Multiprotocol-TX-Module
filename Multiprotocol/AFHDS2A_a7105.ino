@@ -76,6 +76,9 @@ static void AFHDS2A_calc_channels()
 // telemetry sensors ID
 enum{
 	AFHDS2A_SENSOR_RX_VOLTAGE   = 0x00,
+	AFHDS2A_SENSOR_TEMPERATURE  = 0x01,
+	AFHDS2A_SENSOR_RPM          = 0x02,
+	AFHDS2A_SENSOR_CELL_VOLTAGE = 0x03,
 	AFHDS2A_SENSOR_RX_ERR_RATE  = 0xfe,
 	AFHDS2A_SENSOR_RX_RSSI      = 0xfc,
 	AFHDS2A_SENSOR_RX_NOISE     = 0xfb,
@@ -99,6 +102,9 @@ static void AFHDS2A_update_telemetry()
     }
 #endif
 #ifdef AFHDS2A_HUB_TELEMETRY
+	uint8_t voltage_index = 0;
+	// uint8_t cell_index = 0;
+	// uint8_t cell_total = 0;
 	for(uint8_t sensor=0; sensor<7; sensor++)
 	{
         // Send FrSkyD telemetry to TX
@@ -107,22 +113,67 @@ static void AFHDS2A_update_telemetry()
 		{
 			case AFHDS2A_SENSOR_RX_VOLTAGE:
 				//v_lipo1 = packet[index+3]<<8 | packet[index+2];
-				v_lipo1 = packet[index+2];
-				telemetry_link=1;
+				// v_lipo1 = packet[index+2];
+				// telemetry_link=1;
+				voltage_index++;
+				if(packet[index+1] == 0) // Rx voltage
+				{
+					v_lipo1 = packet[index+3]<<8 | packet[index+2];
+					telemetry_link=1;
+				}
+				else if(voltage_index == 2) // external voltage sensor #1
+				{
+					v_lipo2 = packet[index+3]<<8 | packet[index+2];
+					telemetry_link=1;
+				}
+				/*
+				else if(voltage_index == 3) // external voltage sensor #2
+				{
+					v_lipo3 = packet[index+3]<<8 | packet[index+2];
+					telemetry_link=1;
+				}
+				*/
 				break;
+/*
+			case SENSOR_TEMPERATURE:
+				Telemetry.value[TELEM_FRSKY_TEMP1] = ((packet[index+3]<<8 | packet[index+2]) - 400) / 10;
+				TELEMETRY_SetUpdated(TELEM_FRSKY_TEMP1);
+				break;
+			case SENSOR_CELL_VOLTAGE:
+				if(cell_index < 6) {
+					Telemetry.value[TELEM_FRSKY_CELL1 + cell_index] = packet[index+3]<<8 | packet[index+2];
+					TELEMETRY_SetUpdated(TELEM_FRSKY_CELL1 + cell_index);
+					cell_total += packet[index+3]<<8 | packet[index+2];
+				}
+				cell_index++;
+				break;
+			case AFHDS2A_SENSOR_RX_RPM:
+				RX_RPM = packet[index+3]<<8 | packet[index+2];
+				break;
+*/
 			case AFHDS2A_SENSOR_RX_ERR_RATE:
-				RX_LQI=packet[index+2];
+				// RX_LQI=packet[index+2];
+				RX_LQI = 100 - packet[index+2];
 				break;
 			case AFHDS2A_SENSOR_RX_RSSI:
-				RX_RSSI = -packet[index+2];
+				// RX_RSSI = -packet[index+2];
+				RX_RSSI = packet[index+2];
 				break;
+			/*
 			case 0xff:
 				return;
-			/*default:
+			default:
 				// unknown sensor ID
-				break;*/
+				break;
+			*/
 		}
 	}
+/*
+	if(cell_index > 0) {
+		Telemetry.value[TELEM_FRSKY_ALL_CELL] = cell_total;
+		TELEMETRY_SetUpdated(TELEM_FRSKY_ALL_CELL);
+	}
+*/
 #endif
 }
 #endif
@@ -174,17 +225,46 @@ static void AFHDS2A_build_packet(uint8_t type)
 				packet[9 +  ch*2] = Servo_data[CH_AETR[ch]]&0xFF;
 				packet[10 + ch*2] = (Servo_data[CH_AETR[ch]]>>8)&0xFF;
 			}
+			
+/*
+			if(sub_protocol == LQI_OUT) {
+				
+			}
+			
+// override channel with telemetry LQI
+if(Model.proto_opts[PROTOOPTS_LQI_OUT] > 0) {
+	// u16 val = 1000 + (Telemetry.value[TELEM_FRSKY_LQI] * 10);
+	u16 val = 1000 + (RX_LQI * 10);
+	packet[17+((Model.proto_opts[PROTOOPTS_LQI_OUT]-1)*2)] = val & 0xff;
+	packet[18+((Model.proto_opts[PROTOOPTS_LQI_OUT]-1)*2)] = (val >> 8) & 0xff;
+}
+*/
 			break;
 		case AFHDS2A_PACKET_FAILSAFE:
 			packet[0] = 0x56;
 			for(uint8_t ch=0; ch<14; ch++)
 			{
-				/*if((Model.limits[ch].flags & CH_FAILSAFE_EN))
+#ifdef AFHDS2A_FAILSAFE
+				int8_t failsafe = AFHDS2AFailsafe[ch];
+				//
+				if(failsafe != -1)
 				{
-					packet[9 + ch*2] = Servo_data[CH_AETR[ch]] & 0xff;
-					packet[10+ ch*2] = (Servo_data[CH_AETR[ch]] >> 8) & 0xff;
+					//
+					if (failsafe > AFHDS2AFailsafeMAX)
+						failsafe = AFHDS2AFailsafeMAX;
+					//
+					if (failsafe < AFHDS2AFailsafeMIN)
+						failsafe = AFHDS2AFailsafeMIN;
+					//
+					// double scale = (float)failsafe/(float)100;
+					// int16_t failsafeMicros = 1500 + ((float)512 * scale);
+					int16_t failsafeMicros = 1500 + failsafe * 128 / 25 ;
+					//
+					packet[9 + ch*2] =  failsafeMicros & 0xff;
+					packet[10+ ch*2] = ( failsafeMicros >> 8) & 0xff;
 				}
-				else*/
+				else
+#endif
 				{
 					packet[9 + ch*2] = 0xff;
 					packet[10+ ch*2] = 0xff;
@@ -260,7 +340,8 @@ uint16_t ReadAFHDS2A()
 			while ((uint16_t)micros()-start < 700)			// Wait max 700µs, using serial+telemetry exit in about 120µs
 				if(!(A7105_ReadReg(A7105_00_MODE) & 0x01))
 					break;
-			A7105_SetTxRxMode(RX_EN);
+			A7105_SetPower();
+			A7105_SetTxRxMode(TXRX_OFF);					// Turn LNA off since we are in near range and we want to prevent swamping
 			A7105_Strobe(A7105_RX);
 			phase &= ~AFHDS2A_WAIT_WRITE;
 			phase++;
@@ -325,6 +406,7 @@ uint16_t ReadAFHDS2A()
 			while ((uint16_t)micros()-start < 700)			// Wait max 700µs, using serial+telemetry exit in about 120µs
 				if(!(A7105_ReadReg(A7105_00_MODE) & 0x01))
 					break;
+			A7105_SetPower();
 			A7105_SetTxRxMode(RX_EN);
 			A7105_Strobe(A7105_RX);
 			phase &= ~AFHDS2A_WAIT_WRITE;

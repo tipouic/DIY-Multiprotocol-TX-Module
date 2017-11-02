@@ -59,7 +59,7 @@ uint8_t A7105_ReadReg(uint8_t address)
 { 
 	uint8_t result;
 	A7105_CSN_off;
-	SPI_Write(address |=0x40);		//bit 6 =1 for reading
+	SPI_Write(address |=0x40);				//bit 6 =1 for reading
 	result = SPI_SDI_Read();  
 	A7105_CSN_on;
 	return(result); 
@@ -75,19 +75,19 @@ void A7105_SetTxRxMode(uint8_t mode)
 	}
 	else
 		if (mode == RX_EN)
-	{
-		A7105_WriteReg(A7105_0B_GPIO1_PIN1, 0x31);
-		A7105_WriteReg(A7105_0C_GPIO2_PIN_II, 0x33);
-	}
-	else
-	{
-		//The A7105 seems to some with a cross-wired power-amp (A7700)
-		//On the XL7105-D03, TX_EN -> RXSW and RX_EN -> TXSW
-		//This means that sleep mode is wired as RX_EN = 1 and TX_EN = 1
-		//If there are other amps in use, we'll need to fix this
-		A7105_WriteReg(A7105_0B_GPIO1_PIN1, 0x33);
-		A7105_WriteReg(A7105_0C_GPIO2_PIN_II, 0x33);
-	}
+		{
+			A7105_WriteReg(A7105_0B_GPIO1_PIN1, 0x31);
+			A7105_WriteReg(A7105_0C_GPIO2_PIN_II, 0x33);
+		}
+		else
+		{
+			//The A7105 seems to some with a cross-wired power-amp (A7700)
+			//On the XL7105-D03, TX_EN -> RXSW and RX_EN -> TXSW
+			//This means that sleep mode is wired as RX_EN = 1 and TX_EN = 1
+			//If there are other amps in use, we'll need to fix this
+			A7105_WriteReg(A7105_0B_GPIO1_PIN1, 0x33);
+			A7105_WriteReg(A7105_0C_GPIO2_PIN_II, 0x33);
+		}
 }
 
 //------------------------
@@ -97,7 +97,7 @@ uint8_t A7105_Reset()
 	
 	A7105_WriteReg(A7105_00_MODE, 0x00);
 	delayMilliseconds(1);
-	A7105_SetTxRxMode(TXRX_OFF);		//Set both GPIO as output and low
+	A7105_SetTxRxMode(TXRX_OFF);			//Set both GPIO as output and low
 	result=A7105_ReadReg(A7105_10_PLL_II) == 0x9E;	//check if is reset.
 	A7105_Strobe(A7105_STANDBY);
 	return result;
@@ -146,7 +146,11 @@ void A7105_SetPower()
 {
 	uint8_t power=A7105_BIND_POWER;
 	if(IS_BIND_DONE_on)
-		power=IS_POWER_FLAG_on?A7105_HIGH_POWER:A7105_LOW_POWER;
+		#ifdef A7105_ENABLE_LOW_POWER
+			power=IS_POWER_FLAG_on?A7105_HIGH_POWER:A7105_LOW_POWER;
+		#else
+			power=A7105_HIGH_POWER;
+		#endif
 	if(IS_RANGE_FLAG_on)
 		power=A7105_RANGE_POWER;
 	if(prev_power != power)
@@ -247,13 +251,13 @@ void A7105_Init(void)
 	//VCO Bank Calibrate channel 0
 	A7105_WriteReg(A7105_0F_CHANNEL, 0);
 	A7105_WriteReg(A7105_02_CALC,2);
-	while(A7105_ReadReg(A7105_02_CALC));	// Wait for calibration to end
+	while(A7105_ReadReg(A7105_02_CALC));			// Wait for calibration to end
 //	A7105_ReadReg(A7105_25_VCO_SBCAL_I);
 	
 	//VCO Bank Calibrate channel A0
 	A7105_WriteReg(A7105_0F_CHANNEL, 0xa0);
 	A7105_WriteReg(A7105_02_CALC, 2);
-	while(A7105_ReadReg(A7105_02_CALC));	// Wait for calibration to end
+	while(A7105_ReadReg(A7105_02_CALC));			// Wait for calibration to end
 //	A7105_ReadReg(A7105_25_VCO_SBCAL_I);
 
 	//Reset VCO Band calibration

@@ -1,9 +1,3 @@
-/*
-	This project is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-	Deviation is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-	You should have received a copy of the GNU General Public License along with Deviation.  If not, see <http://www.gnu.org/licenses/>.
- */
-
 /* 
 	This protocol is for the HM Hobby HM830 RC Paper Airplane 
 	Protocol spec: 
@@ -22,7 +16,6 @@
 */
 
 #ifdef HM830_NRF24L01_INO
-
 #include "iface_nrf24l01.h"
 
 enum {
@@ -64,7 +57,6 @@ static uint8_t init_vals_hm830[][2] = {
 	{NRF24L01_09_CD,          0x00},
 	{NRF24L01_08_OBSERVE_TX,  0x00},
 	{NRF24L01_07_STATUS,      0x07},
-//	{NRF24L01_06_RF_SETUP,    0x07},
 	{NRF24L01_05_RF_CH,       0x18},
 	{NRF24L01_04_SETUP_RETR,  0x3F},
 	{NRF24L01_03_SETUP_AW,    0x03},
@@ -76,8 +68,9 @@ static uint8_t init_vals_hm830[][2] = {
 static uint8_t count;
 static uint8_t rf_ch[]     = {0x08, 0x35, 0x12, 0x3f, 0x1c, 0x49, 0x26};
 static uint8_t bind_addr[] = {0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xc2};
+static uint8_t rx_addr[6];    // = {0xb6, 0x0c, 0x00, 0x40, 0xee, 0xc2};
 
-static uint8_t HM830_crc8(uint32_t result, uint8_t *data, int len) {
+static uint8_t __attribute__((unused)) HM830_crc8(uint32_t result, uint8_t *data, int len) {
 	int polynomial = 0x01;
 	for(int i = 0; i < len; i++) {
 		result = result ^ data[i];
@@ -89,9 +82,9 @@ static uint8_t HM830_crc8(uint32_t result, uint8_t *data, int len) {
 	return result & 0xff;
 }
 
-static void HM830_init() {
+static void __attribute__((unused)) HM830_init() {
 	NRF24L01_Initialize();
-	for (uint32_t i = 0; i < sizeof(init_vals_hm830) / sizeof(init_vals_hm830[0]); i++) { NRF24L01_WriteReg(init_vals_hm830[i][0], init_vals_hm830[i][1]); }
+	for (uint32_t i = 0; i < 20; i++) { NRF24L01_WriteReg(init_vals_hm830[i][0], init_vals_hm830[i][1]); }
 
 	NRF24L01_SetTxRxMode(TX_EN);
 	NRF24L01_SetBitrate(0);
@@ -113,12 +106,12 @@ static void HM830_init() {
 	NRF24L01_ReadReg(NRF24L01_01_EN_AA);      // No Auto Acknoledgement
 }
 
-static void build_bind_packet_hm830() {
-	for(int i = 0; i < 6; i++) { packet[i] = rx_tx_addr[i]; }
+static void __attribute__((unused)) build_bind_packet_hm830() {
+	for(int i = 0; i < 6; i++) { packet[i] = rx_addr[i]; }
 	packet[6] = HM830_crc8(0xa5, packet, 6);
 }
 
-static void build_data_packet() {
+static void __attribute__((unused)) build_data_packet() {
 	uint8_t ail_sign = 0, trim_sign = 0;
 
 	throttle = (uint32_t)map(limit_channel_100(THROTTLE),servo_min_100,servo_max_100,0,100);
@@ -145,20 +138,20 @@ static void build_data_packet() {
 	packet[6] = HM830_crc8(0xa5, packet, 6);
 }
 
-static void send_packet_hm830() {
+static void __attribute__((unused)) send_packet_hm830() {
 	NRF24L01_ReadReg(NRF24L01_17_FIFO_STATUS);
 	NRF24L01_WritePayload(packet, 7);
 }
 
-static uint16_t handle_binding() {
+static uint16_t __attribute__((unused)) handle_binding() {
 	uint8_t status = NRF24L01_ReadReg(NRF24L01_07_STATUS);
 	if (status & 0x20) {
 		//Binding  complete
 		phase = HM830_DATA1 + ((phase&0x7F)-HM830_BIND1A);
 		count = 0;
-		NRF24L01_WriteRegisterMulti(NRF24L01_0A_RX_ADDR_P0, rx_tx_addr,   5);
-		NRF24L01_WriteRegisterMulti(NRF24L01_0B_RX_ADDR_P1, rx_tx_addr+1, 5);
-		NRF24L01_WriteRegisterMulti(NRF24L01_10_TX_ADDR,    rx_tx_addr,   5);
+		NRF24L01_WriteRegisterMulti(NRF24L01_0A_RX_ADDR_P0, rx_addr,   5);
+		NRF24L01_WriteRegisterMulti(NRF24L01_0B_RX_ADDR_P1, rx_addr+1, 5);
+		NRF24L01_WriteRegisterMulti(NRF24L01_10_TX_ADDR,    rx_addr,   5);
 		NRF24L01_FlushTx();
 		build_data_packet();
 		uint8_t rb = NRF24L01_ReadReg(NRF24L01_07_STATUS); //==> 0x0E
@@ -172,9 +165,9 @@ static uint16_t handle_binding() {
 		case HM830_BIND1A:
 			//Look for a Rx that is already bound
 			NRF24L01_SetPower();
-			NRF24L01_WriteRegisterMulti(NRF24L01_0A_RX_ADDR_P0, rx_tx_addr,   5);
-			NRF24L01_WriteRegisterMulti(NRF24L01_0B_RX_ADDR_P1, rx_tx_addr+1, 5);
-			NRF24L01_WriteRegisterMulti(NRF24L01_10_TX_ADDR,    rx_tx_addr,   5);
+			NRF24L01_WriteRegisterMulti(NRF24L01_0A_RX_ADDR_P0, rx_addr,   5);
+			NRF24L01_WriteRegisterMulti(NRF24L01_0B_RX_ADDR_P1, rx_addr+1, 5);
+			NRF24L01_WriteRegisterMulti(NRF24L01_10_TX_ADDR,    rx_addr,   5);
 			NRF24L01_WriteReg(NRF24L01_05_RF_CH, rf_ch[0]);
 			build_bind_packet_hm830();
 			break;
@@ -212,7 +205,7 @@ static uint16_t handle_binding() {
 	return 20000;
 }
 
-static uint16_t handle_data() {
+static uint16_t __attribute__((unused)) handle_data() {
 	uint8_t status = NRF24L01_ReadReg(NRF24L01_07_STATUS);
 	if (count <= 0 || !(status & 0x20)) {
 		if(count < 0 || ! (status & 0x20)) {
@@ -247,19 +240,20 @@ static uint16_t handle_data() {
 }
 
 
-
 static uint16_t HM830_callback() {
     if ((phase & 0x7F) < HM830_DATA1) { return handle_binding(); }
     else { return handle_data(); }
 }
 
-
 static uint32_t HM830_setup(){
 	count = 0;
 	//  initialize_tx_id
-
-	rx_tx_addr[4] = 0xee;
-	rx_tx_addr[5] = 0xc2;
+	rx_addr[0]=rx_tx_addr[3];
+	rx_addr[1]=rx_tx_addr[2];
+	rx_addr[2]=rx_tx_addr[1];
+	rx_addr[3]=rx_tx_addr[0];
+	rx_addr[4] = 0xee;
+	rx_addr[5] = 0xc2;
 	HM830_init();
 	phase = HM830_BIND1A;
 

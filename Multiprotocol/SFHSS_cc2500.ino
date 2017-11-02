@@ -150,16 +150,16 @@ static void __attribute__((unused)) SFHSS_build_data_packet()
 }
 */
 
-// Channel values are 12-bit values between 1000 and 2000, 1500 is the middle.
+// Channel values are 12-bit values between 1020 and 2020, 1520 is the middle.
 // Futaba @140% is 2070...1520...970
 // Values grow down and to the right.
 static void __attribute__((unused)) SFHSS_build_data_packet()
 {
 	uint8_t ch_offset = phase == SFHSS_DATA1 ? 0 : 4;
-	uint16_t ch1 = convert_channel_16b_nolim(CH_AETR[ch_offset+0],1000,2000);
-	uint16_t ch2 = convert_channel_16b_nolim(CH_AETR[ch_offset+1],1000,2000);
-	uint16_t ch3 = convert_channel_16b_nolim(CH_AETR[ch_offset+2],1000,2000);
-	uint16_t ch4 = convert_channel_16b_nolim(CH_AETR[ch_offset+3],1000,2000);
+	uint16_t ch1 = convert_channel_16b_nolim(CH_AETR[ch_offset+0],2020,1020);
+	uint16_t ch2 = convert_channel_16b_nolim(CH_AETR[ch_offset+1],2020,1020);
+	uint16_t ch3 = convert_channel_16b_nolim(CH_AETR[ch_offset+2],2020,1020);
+	uint16_t ch4 = convert_channel_16b_nolim(CH_AETR[ch_offset+3],2020,1020);
 
 	packet[0] = 0x81; // can be 80 or 81 for Orange, only 81 for XK
 	packet[1] = rx_tx_addr[0];
@@ -173,7 +173,7 @@ static void __attribute__((unused)) SFHSS_build_data_packet()
 	packet[9] = (ch3 >> 1);
 	packet[10] = (ch3 << 7) | ((ch4 >> 5) & 0x7F );
 	packet[11] = (ch4 << 3) | ((fhss_code >> 2) & 0x07 );
-    packet[12] = (fhss_code << 6) | phase;
+	packet[12] = (fhss_code << 6) | phase;
 }
 
 static void __attribute__((unused)) SFHSS_send_packet()

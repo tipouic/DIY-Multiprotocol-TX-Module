@@ -1,29 +1,41 @@
 Flysky uniquement 
-              3 voies              2 acc              1 potar
+	2 voies		2 acc / 2 potar + option :
+					Basc + prof
+	4 voies            1 p 2a 1p
 
 Fonction base
-              - rebind
-              - calibre gyro
-              - inversion prof
-              -                      dir
-              - chgmt prof/dir
-
-
+	- rebind
+	- calibre gyro ???
+	- inversion prof
+	- 		  dir
+	- chgmt prof/dir
 
 Normal (Vert)
-Z -> coupure gaz (rouge)
-C -> config (bleu)
-	     -> accès possible via coupure
-				 rebind
-					^
-	position secu < 0 > 1 édit servo
-					V →  chgmt modèle
+ZL -> coupure gaz (rouge)
+Cl -> bascule acc / joystick si option
+Cc -> config (bleu)
 
-                 Prof inverse
-				 ^
-chgmt order CH < 1 > dir
-				 V
-              Trim JX
+
+Menu :	     -> accès possible via coupure
+
+		  rebind
+			  ^
+ Options 2 <* 0 *> 1 édit servo
+			 *V 
+			model	↑↓ protocole
+					←→  chgmt modèle
+
+2 Options : 
+	2v	←→ % gaz (pas de 5)
+		↑↓  position bas
+
+1 edit servo	Prof 
+				 ↑	inverse
+chgmt order CH ← 1 → dir
+P / D			 ↓
+			Trim JX (JX, C retour menu) (blanc)
+				zc bivoie
+				cc position gaz
 
 
 Secu gaz (attend retour mini)
@@ -38,10 +50,12 @@ Buzzer
 Eeprom
 1 modèle
 
-	1	1  proto
-	2	2 *changement dir/prof
+	0	1  protocole
+	1	2 *changement dir/prof
 		3 *inverse dir
 		4 *inverse prof
-	3	5  trim JX
-		6 *Dual-rate (réglage sensibilité 60 / 100%)
-		7 *neutre gaz (bas/milieu)
+		5 *Dual-rate (réglage sensibilité 60 / 100%)
+		6 *neutre gaz (bas/milieu)
+		7 *bi-voies
+	2	8  trim JX	/	option A (2v:neutre prof)
+	3	9  option B (2v:% gaz)

@@ -15,7 +15,10 @@
 //*******************
 //***   Pinouts   ***
 //*******************
-#ifndef STM32_BOARD
+#ifndef STM32_BOARD	// arduino
+	#define IR_PIN 11 // must be 3 or 11
+	#define DYNAMIC_RUDDER_TRIM false // (experimental)
+	
 	// TX
 	#define SERIAL_TX_pin	1								//PD1
 	#define SERIAL_TX_port	PORTD
@@ -208,6 +211,9 @@
 		#define IS_BIND_BUTTON_on	( (BIND_ipr & _BV(BIND_pin)) == 0x00 )
 	#endif
 #else //STM32_BOARD
+	#define IR_PIN PA15 // must be 3 or 11
+	#define DYNAMIC_RUDDER_TRIM false // (experimental)
+	
 	#define	BIND_pin		PA0
 	#define	LED_pin			PA1						
 	//

@@ -82,26 +82,36 @@ uint16_t limit_channel_100(uint8_t ch)
 /**  FrSky D and X routines  **/
 /******************************/
 #if defined(FRSKYD_CC2500_INO) || defined(FRSKYX_CC2500_INO)
-void Frsky_init_hop(void)
-{
-	uint8_t val;
-	uint8_t channel = rx_tx_addr[0]&0x07;
-	uint8_t channel_spacing = rx_tx_addr[1];
-	//Filter bad tables
-	if(channel_spacing<0x02) channel_spacing+=0x02;
-	if(channel_spacing>0xE9) channel_spacing-=0xE7;
-	if(channel_spacing%0x2F==0) channel_spacing++;
-		
-	hopping_frequency[0]=channel;
-	for(uint8_t i=1;i<50;i++)
+	enum {
+		FRSKY_BIND		= 0,
+		FRSKY_BIND_DONE	= 1000,
+		FRSKY_DATA1,
+		FRSKY_DATA2,
+		FRSKY_DATA3,
+		FRSKY_DATA4,
+		FRSKY_DATA5
+	};
+	
+	void Frsky_init_hop(void)
 	{
-		channel=(channel+channel_spacing) % 0xEB;
-		val=channel;
-		if((val==0x00) || (val==0x5A) || (val==0xDC))
-			val++;
-		hopping_frequency[i]=i>46?0:val;
+		uint8_t val;
+		uint8_t channel = rx_tx_addr[0]&0x07;
+		uint8_t channel_spacing = rx_tx_addr[1];
+		//Filter bad tables
+		if(channel_spacing<0x02) channel_spacing+=0x02;
+		if(channel_spacing>0xE9) channel_spacing-=0xE7;
+		if(channel_spacing%0x2F==0) channel_spacing++;
+			
+		hopping_frequency[0]=channel;
+		for(uint8_t i=1;i<50;i++)
+		{
+			channel=(channel+channel_spacing) % 0xEB;
+			val=channel;
+			if((val==0x00) || (val==0x5A) || (val==0xDC))
+				val++;
+			hopping_frequency[i]=i>46?0:val;
+		}
 	}
-}
 #endif
 /******************************/
 /**  FrSky V, D and X routines  **/
