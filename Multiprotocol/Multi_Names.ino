@@ -79,6 +79,7 @@ const char STR_TIGER[]		="Tiger";
 const char STR_XK[]			="XK";
 const char STR_XN297DUMP[]	="XN297DP";
 const char STR_FRSKYR9[]	="FrSkyR9";
+const char STR_TheDIYGuy999[]	="TheDIYGuy999";
 
 const char STR_SUBTYPE_FLYSKY[] =     "\x04""Std\0""V9x9""V6x6""V912""CX20";
 const char STR_SUBTYPE_HUBSAN[] =     "\x04""H107""H301""H501";
@@ -329,6 +330,9 @@ const mm_protocol_definition multi_protocols[] = {
 #endif
 #if defined(FRSKYR9_SX1276_INO)
 	{PROTO_FRSKY_R9,  STR_FRSKYR9, 2, STR_SUBTYPE_FRSKYR9, OPTION_NONE  },
+#endif
+#if defined(TheDIYGuy999_NRF24L01_INO)
+	{PROTO_TheDIYGuy999,  STR_TheDIYGuy999, 2, NO_SUBTYPE, OPTION_OPTION  },
 #endif
 	{0x00,             nullptr,       0, nullptr,               0 }
 };
