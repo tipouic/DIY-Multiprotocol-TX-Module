@@ -222,6 +222,7 @@
 #define	XK_NRF24L01_INO
 #define	YD717_NRF24L01_INO
 #define	ZSX_NRF24L01_INO
+#define TheDIYGuy999_NRF24L01_INO
 
 //The protocols below need a SX1276 to be installed
 //#define FRSKYR9_SX1276_INO
@@ -308,6 +309,7 @@
 #define AFHDS2A_RX_TELEMETRY		// Forward channels data to TX
 #define HOTT_FW_TELEMETRY			// Forward received telemetry packets to be decoded by erskyTX and OpenTX
 #define BAYANG_RX_TELEMETRY			// Forward channels data to TX
+#define TheDIYGuy999_HUB_TELEMETRY		// Use FrSkyD Hub format to send telemetry to TX
 
 /****************************/
 /*** SERIAL MODE SETTINGS ***/
