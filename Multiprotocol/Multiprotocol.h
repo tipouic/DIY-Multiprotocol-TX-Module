@@ -728,6 +728,7 @@ Serial: 100000 Baud 8e2      _ xxxx xxxx p --
 				XN297DUMP	63
 				FRSKYX2		64
 				FRSKY_R9	65
+				TheDIYGuy999	67
    BindBit=>		0x80	1=Bind/0=No
    AutoBindBit=>	0x40	1=Yes /0=No
    RangeCheck=>		0x20	1=Yes /0=No
