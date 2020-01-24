@@ -63,9 +63,13 @@ void SHENQI_send_packet()
 	}
 	else
 	{
+		#ifdef MULTI_SYNC
+			if(packet_count==1)
+				telemetry_set_input_sync(3000+2508+6*1750);
+		#endif
 		LT8900_SetAddress(rx_tx_addr,4);
 		packet[1]=255-convert_channel_8b(RUDDER);
-		packet[2]=255-convert_channel_8b_scale(THROTTLE,0x60,0xA0);
+		packet[2]=255-convert_channel_16b_limit(THROTTLE,0x60,0xA0);
 		uint8_t freq=pgm_read_byte_near(&SHENQI_Freq[hopping_frequency_no])+(rx_tx_addr[2]&0x0F);
 		LT8900_SetChannel(freq);
 		hopping_frequency_no++;
@@ -90,8 +94,10 @@ void SHENQI_send_packet()
 
 uint16_t SHENQI_callback()
 {
-	if(IS_BIND_DONE_on)
+	if(IS_BIND_DONE)
+	{
 		SHENQI_send_packet();
+	}
 	else
 	{
 		if( NRF24L01_ReadReg(NRF24L01_07_STATUS) & _BV(NRF24L01_07_RX_DR))

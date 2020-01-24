@@ -79,7 +79,7 @@ static void __attribute__((unused)) WK_build_bind_pkt(const uint8_t *init)
 
 static int16_t __attribute__((unused)) WK_get_channel(uint8_t ch, int32_t scale, int16_t center, int16_t range)
 {
-	int16_t value = map(Servo_data[CH_AETR[ch]],servo_min_100,servo_max_100,-scale,scale)+center;
+	int16_t value = convert_channel_16b_nolimit(CH_AETR[ch],-scale,scale)+center;
 	if (value < center - range) value = center - range;
 	if (value > center + range) value = center + range;
 	return value;
@@ -288,22 +288,22 @@ static void __attribute__((unused)) WK_build_beacon_pkt_2801()
 	uint8_t bind_state;
 
 	#ifdef ENABLE_PPM
-	if(mode_select && option==0 && IS_BIND_DONE_on) 			//PPM mode and option not already set and bind is finished
+	if(mode_select && option==0 && IS_BIND_DONE) 			//PPM mode and option not already set and bind is finished
 	{
 		BIND_SET_INPUT;
 		BIND_SET_PULLUP;										// set pullup
 		if(IS_BIND_BUTTON_on)
 		{
-			eeprom_write_byte((EE_ADDR)(30+mode_select),0x01);	// Set fixed id mode for the current model
+			eeprom_write_byte((EE_ADDR)(MODELMODE_EEPROM_OFFSET+RX_num),0x01);	// Set fixed id mode for the current model
 			option=1;
 		}
 		BIND_SET_OUTPUT;
 	}
 	#endif //ENABLE_PPM
-    if(prev_option!=option && IS_BIND_DONE_on)
+    if(prev_option!=option && IS_BIND_DONE)
 	{
 		set_rx_tx_addr(MProtocol_id);
-		rx_tx_addr[2]=rx_tx_addr[3]<<4;		// Make use of RX_Num
+		rx_tx_addr[2]=rx_tx_addr[3]<<4;		// Make use of RX_num
 		bind_counter = WK_BIND_COUNT / 8 + 1;
 	}
 	if (option)
@@ -317,8 +317,17 @@ static void __attribute__((unused)) WK_build_beacon_pkt_2801()
         bind_state = 0x99;
 	
 	for (uint8_t i = 0; i < 4; i++)
-	{	// failsafe info: WARNING All channels are set to 0 instead of midstick and 0 for throttle
-		packet[i+1] = 0;
+	{
+		#ifdef FAILSAFE_ENABLE
+			uint16_t failsafe=Failsafe_data[CH_AETR[i + WK_last_beacon * 4]];
+			if(failsafe!=FAILSAFE_CHANNEL_HOLD && IS_FAILSAFE_VALUES_on)
+			{
+				packet[i+1] = failsafe>>3;	//0..255
+				en |= 1 << i;
+			}
+			else
+		#endif
+				packet[i+1] = 0;
 	}
 	packet[0] = en;
 	packet[5] = packet[4];
@@ -426,6 +435,9 @@ uint16_t WK_cb()
 {
 	if (packet_sent == 0)
 	{
+		#ifdef MULTI_SYNC
+			telemetry_set_input_sync(2800);
+		#endif
 		packet_sent = 1;
 		if(sub_protocol == WK2801)
 			WK_BuildPacket_2801();
@@ -453,7 +465,8 @@ uint16_t WK_cb()
 	return 1200;
 }
 
-uint16_t WK_setup() {
+uint16_t WK_setup()
+{
 	wk2x01_cyrf_init();
 	CYRF_SetTxRxMode(TX_EN);
 
@@ -480,7 +493,7 @@ uint16_t WK_setup() {
 	}
 	else
 	{
-		rx_tx_addr[2]=rx_tx_addr[3]<<4;		// Make use of RX_Num
+		rx_tx_addr[2]=rx_tx_addr[3]<<4;		// Make use of RX_num
 		bind_counter = 0;
 		phase = WK_BOUND_1;
 		BIND_DONE;

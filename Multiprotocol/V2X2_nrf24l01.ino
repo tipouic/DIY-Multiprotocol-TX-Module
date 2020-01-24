@@ -173,31 +173,31 @@ static void __attribute__((unused)) V2X2_send_packet(uint8_t bind)
 		//Flags
 		flags=0;
 		// Channel 5
-		if (Servo_AUX1)	flags = V2X2_FLAG_FLIP;
+		if (CH5_SW)	flags = V2X2_FLAG_FLIP;
 		// Channel 6
-		if (Servo_AUX2)	flags |= V2X2_FLAG_LIGHT;
+		if (CH6_SW)	flags |= V2X2_FLAG_LIGHT;
 		// Channel 7
-		if (Servo_AUX3)	flags |= V2X2_FLAG_CAMERA;
+		if (CH7_SW)	flags |= V2X2_FLAG_CAMERA;
 		// Channel 8
-		if (Servo_AUX4)	flags |= V2X2_FLAG_VIDEO;
+		if (CH8_SW)	flags |= V2X2_FLAG_VIDEO;
 
 		//Flags2
 		// Channel 9
-		if (Servo_AUX5)
+		if (CH9_SW)
 			flags2 = V2X2_FLAG_HEADLESS;
 		if(sub_protocol==JXD506)
 		{
 			// Channel 11
-			if (Servo_AUX7)
+			if (CH11_SW)
 				flags2 |= V2X2_FLAG_EMERGENCY;
 		}
 		else
 		{
 			// Channel 10
-			if (Servo_AUX6)
+			if (CH10_SW)
 				flags2 |= V2X2_FLAG_MAG_CAL_X;
 			// Channel 11
-			if (Servo_AUX7)
+			if (CH11_SW)
 				flags2 |= V2X2_FLAG_MAG_CAL_Y;
 		}
 	}
@@ -213,12 +213,12 @@ static void __attribute__((unused)) V2X2_send_packet(uint8_t bind)
 	if(sub_protocol==JXD506)
 	{
 		// Channel 10
-		if (Servo_AUX6)
+		if (CH10_SW)
 			packet[11] = V2X2_FLAG_START_STOP;
 		// Channel 12
-		if(Servo_data[AUX8] > PPM_MAX_COMMAND)
+		if(CH12_SW)
 			packet[11] |= V2X2_FLAG_CAMERA_UP;
-		else if(Servo_data[AUX8] < PPM_MIN_COMMAND)
+		else if(Channel_data[CH12] < CHANNEL_MIN_COMMAND)
 			packet[11] |= V2X2_FLAG_CAMERA_DN;
 		packet[12] = 0x40;
 		packet[13] = 0x40;
@@ -264,6 +264,9 @@ uint16_t ReadV2x2()
 		case V202_DATA:
 			if (packet_sent && NRF24L01_packet_ack() != PKT_ACKED)
 				return V2X2_PACKET_CHKTIME;
+			#ifdef MULTI_SYNC
+				telemetry_set_input_sync(V2X2_PACKET_PERIOD);
+			#endif
 			V2X2_send_packet(0);
 			break;
 	}
@@ -275,7 +278,7 @@ uint16_t initV2x2()
 {	
 	v202_init();
 	//
-	if (IS_AUTOBIND_FLAG_on)
+	if (IS_BIND_IN_PROGRESS)
 	{
 		bind_counter = V2X2_BIND_COUNT;
 		phase = V202_INIT2;

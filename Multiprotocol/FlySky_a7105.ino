@@ -51,44 +51,44 @@ enum {
 };
 
 const uint8_t PROGMEM V912_X17_SEQ[10] =  { 0x14, 0x31, 0x40, 0x49, 0x49,    // sometime first byte is 0x15 ?
-										0x49, 0x49, 0x49, 0x49, 0x49, }; 
+											0x49, 0x49, 0x49, 0x49, 0x49, }; 
 
 static void __attribute__((unused)) flysky_apply_extension_flags()
 {
 	switch(sub_protocol)
 	{
 		case V9X9:
-			if(Servo_AUX1)
+			if(CH5_SW)
 				packet[12] |= FLAG_V9X9_FLIP;
-			if(Servo_AUX2)
+			if(CH6_SW)
 				packet[12] |= FLAG_V9X9_LED;
-			if(Servo_AUX3)
+			if(CH7_SW)
 				packet[10] |= FLAG_V9X9_CAMERA;
-			if(Servo_AUX4)
+			if(CH8_SW)
 				packet[10] |= FLAG_V9X9_VIDEO;
 			break;
 			
 		case V6X6:
 			packet[13] = 0x03; // 3 = 100% rate (0=40%, 1=60%, 2=80%)
 			packet[14] = 0x00;
-			if(Servo_AUX1) 
+			if(CH5_SW) 
 				packet[14] |= FLAG_V6X6_FLIP;
-			if(Servo_AUX2) 
+			if(CH6_SW) 
 				packet[14] |= FLAG_V6X6_LED;
-			if(Servo_AUX3) 
+			if(CH7_SW) 
 				packet[14] |= FLAG_V6X6_CAMERA;
-			if(Servo_AUX4) 
+			if(CH8_SW) 
 				packet[14] |= FLAG_V6X6_VIDEO;
-			if(Servo_AUX5)
+			if(CH9_SW)
 			{ 
 				packet[13] |= FLAG_V6X6_HLESS1;
 				packet[14] |= FLAG_V6X6_HLESS2;
 			}
-			if(Servo_AUX6) //use option to manipulate these bytes
+			if(CH10_SW)
 				packet[14] |= FLAG_V6X6_RTH;
-			if(Servo_AUX7) 
+			if(CH11_SW) 
 				packet[14] |= FLAG_V6X6_XCAL;
-			if(Servo_AUX8) 
+			if(CH12_SW) 
 				packet[14] |= FLAG_V6X6_YCAL;
 			packet[15] = 0x10; // unknown
 			packet[16] = 0x10; // unknown
@@ -105,9 +105,9 @@ static void __attribute__((unused)) flysky_apply_extension_flags()
 			packet[12] |= 0x20; // bit 6 is always set ?
 			packet[13] = 0x00;  // unknown
 			packet[14] = 0x00;
-			if(Servo_AUX1)
+			if(CH5_SW)
 				packet[14]  = FLAG_V912_BTMBTN;
-			if(Servo_AUX2)
+			if(CH6_SW)
 				packet[14] |= FLAG_V912_TOPBTN;
 			packet[15] = 0x27; // [15] and [16] apparently hold an analog channel with a value lower than 1000
 			packet[16] = 0x03; // maybe it's there for a pitch channel for a CP copter ?
@@ -133,10 +133,10 @@ static void __attribute__((unused)) flysky_build_packet(uint8_t init)
 {
     uint8_t i;
 	//servodata timing range for flysky.
-	////-100% =~ 0x03e8//=1000us(min)
+	//-100% =~ 0x03e8//=1000us(min)
 	//+100% =~ 0x07ca//=1994us(max)
 	//Center = 0x5d9//=1497us(center)
-	//channel order AIL;ELE;THR;RUD;AUX1;AUX2;AUX3;AUX4
+	//channel order AIL;ELE;THR;RUD;CH5;CH6;CH7;CH8
     packet[0] = init ? 0xaa : 0x55;
     packet[1] = rx_tx_addr[3];
     packet[2] = rx_tx_addr[2];
@@ -144,9 +144,9 @@ static void __attribute__((unused)) flysky_build_packet(uint8_t init)
     packet[4] = rx_tx_addr[0];
 	for(i = 0; i < 8; i++)
 	{
-		uint16_t temp=Servo_data[CH_AETR[i]];
-		if(sub_protocol == CX20 && CH_AETR[i] == ELEVATOR)
-			temp=servo_mid-temp;		//reverse channel
+		uint16_t temp=convert_channel_ppm(CH_AETR[i]);
+		if(sub_protocol == CX20 && i==CH2) //ELEVATOR
+			temp=3000-temp;
 		packet[5 + i*2]=temp&0xFF;		//low byte of servo timing(1000-2000us)
 		packet[6 + i*2]=(temp>>8)&0xFF;	//high byte of servo timing(1000-2000us)
 	}
@@ -155,26 +155,28 @@ static void __attribute__((unused)) flysky_build_packet(uint8_t init)
 
 uint16_t ReadFlySky()
 {
-    if (bind_counter)
+	#ifndef FORCE_FLYSKY_TUNING
+		A7105_AdjustLOBaseFreq(1);
+	#endif
+	if(IS_BIND_IN_PROGRESS)
 	{
-        flysky_build_packet(1);
-        A7105_WriteData(21, 1);
-        bind_counter--;
-        if (! bind_counter)
-            BIND_DONE;
-    }
+		flysky_build_packet(1);
+		A7105_WriteData(21, 1);
+		bind_counter--;
+		if (bind_counter==0)
+			BIND_DONE;
+	}
 	else
 	{
+		#ifdef MULTI_SYNC
+			telemetry_set_input_sync(packet_period);
+		#endif
 		flysky_build_packet(0);
-        A7105_WriteData(21, hopping_frequency[hopping_frequency_no & 0x0F]);
+		A7105_WriteData(21, hopping_frequency[hopping_frequency_no & 0x0F]);
 		A7105_SetPower();
-    }
-    hopping_frequency_no++;
-
-	if(sub_protocol==CX20)
-		return 3984;
-	else
-		return 1510;	//1460 on deviation but not working with the latest V911 bricks... Turnigy 9X v2 is 1533, Flysky TX for 9XR/9XR Pro is 1510, V911 TX is 1490.
+	}
+	hopping_frequency_no++;
+	return packet_period;
 }
 
 const uint8_t PROGMEM tx_channels[8][4] = {
@@ -232,7 +234,11 @@ uint16_t initFlySky()
 	}
 	hopping_frequency_no=0;
 	packet_count=0;
-	if(IS_AUTOBIND_FLAG_on)
+	if(sub_protocol==CX20)
+		packet_period=3984;
+	else
+		packet_period=1510;	//1460 on deviation but not working with the latest V911 bricks... Turnigy 9X v2 is 1533, Flysky TX for 9XR/9XR Pro is 1510, V911 TX is 1490.
+	if(IS_BIND_IN_PROGRESS)
 		bind_counter = FLYSKY_BIND_COUNT;
 	else
 		bind_counter = 0;

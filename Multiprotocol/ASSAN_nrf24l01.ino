@@ -50,12 +50,13 @@ void ASSAN_init()
 
 void ASSAN_send_packet()
 {
-	uint16_t temp;
 	for(uint8_t i=0;i<8;i++)
 	{
-		temp=Servo_data[i]<<3;
-		packet[2*i]=temp>>8;
-		packet[2*i+1]=temp;
+		uint16_t val=Channel_data[i];
+		val=((val<<2)+val)+(860<<3);					// PPM value <<3
+		
+		packet[2*i]=val>>8;
+		packet[2*i+1]=val;
 	}
 	for(uint8_t i=0;i<ASSAN_ADDRESS_LENGTH;i++)
 		packet[16+i]=packet[23-i];
@@ -126,6 +127,9 @@ uint16_t ASSAN_callback()
 			phase=ASSAN_DATA2;
 			return 2000;
 		case ASSAN_DATA2:
+			#ifdef MULTI_SYNC
+				telemetry_set_input_sync(12000);
+			#endif
 		case ASSAN_DATA3:
 			ASSAN_send_packet();
 			phase++;	// DATA 3 or 4
@@ -171,7 +175,7 @@ uint16_t initASSAN()
 	ASSAN_init();
 	hopping_frequency_no = 0;
 
-	if(IS_AUTOBIND_FLAG_on)
+	if(IS_BIND_IN_PROGRESS)
 		phase=ASSAN_BIND0;
 	else 
 		phase=ASSAN_DATA0;

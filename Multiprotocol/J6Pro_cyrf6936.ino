@@ -128,7 +128,7 @@ static void __attribute__((unused)) j6pro_set_radio_channels()
 
 uint16_t ReadJ6Pro()
 {
-    uint32_t start;
+    uint16_t start;
 
     switch(phase)
     {
@@ -144,11 +144,11 @@ uint16_t ReadJ6Pro()
             phase = J6PRO_BIND_03_START;
             return 3000; //3msec
         case J6PRO_BIND_03_START:
-            start=micros();
-            while (micros()-start < 500)				// Wait max 500µs
-                if(CYRF_ReadRegister(CYRF_04_TX_IRQ_STATUS) & 0x06)
-                    break;
-            CYRF_ConfigRFChannel(0x53);
+            start=(uint16_t)micros();
+            while ((uint16_t)((uint16_t)micros()-(uint16_t)start) < 500)				// Wait max 500µs
+				if((CYRF_ReadRegister(CYRF_02_TX_CTRL) & 0x80) == 0x00)
+					break;										// Packet transmission complete
+			CYRF_ConfigRFChannel(0x53);
             CYRF_SetTxRxMode(RX_EN);
             //CYRF_WriteRegister(CYRF_06_RX_CFG, 0x4a);
             CYRF_WriteRegister(CYRF_05_RX_CTRL, 0x80);
@@ -201,7 +201,10 @@ uint16_t ReadJ6Pro()
             cyrf_datainit();
             phase = J6PRO_CHAN_1;
         case J6PRO_CHAN_1:
-            //Keep transmit power updated
+			#ifdef MULTI_SYNC
+                telemetry_set_input_sync(24550);
+			#endif
+			//Keep transmit power updated
             CYRF_SetPower(0x28);
             j6pro_build_data_packet();
             //return 3400;
@@ -227,7 +230,7 @@ uint16_t initJ6Pro()
 {
     j6pro_cyrf_init();
 
-	if(IS_AUTOBIND_FLAG_on)
+	if(IS_BIND_IN_PROGRESS)
         phase = J6PRO_BIND;
     else
         phase = J6PRO_CHANSEL;

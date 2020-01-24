@@ -122,10 +122,10 @@ static void __attribute__((unused)) build_ch_data()
 	uint8_t i,j;
 	for (i = 0; i< 8; i++) {
 		j=CH_AETR[i];
-		temp=map(limit_channel_100(j),servo_min_100,servo_max_100,0,1000);            			
-		if (j == THROTTLE) // It is clear that hisky's throttle stick is made reversely, so I adjust it here on purpose
-			temp = 1000 -temp;
-		if (j == AUX3)
+		temp=convert_channel_16b_limit(j,0,1000);            			
+		if (j == CH3) // It is clear that hisky's throttle stick is made reversely, so I adjust it here on purpose
+			temp = 1000 - temp;
+		if (j == CH7)
 			temp = temp < 400 ? 0 : 3; // Gyro mode, 0 - 6 axis, 3 - 3 axis 
 		packet[i] = (uint8_t)(temp&0xFF);
 		packet[i<4?8:9]>>=2;
@@ -150,12 +150,29 @@ uint16_t hisky_cb()
 			case 4:
 				phase=6;
 				break;
-			case 7:		// build packet with failsafe every 100ms
-				convert_channel_HK310(hopping_frequency_no!=0?RUDDER:AUX2,&packet[0],&packet[1]);
-				convert_channel_HK310(hopping_frequency_no!=0?THROTTLE:AUX3,&packet[2],&packet[3]);
-				convert_channel_HK310(hopping_frequency_no!=0?AUX1:AUX4,&packet[4],&packet[5]);
-				packet[7]=hopping_frequency_no!=0?0x55:0xAA;
-				packet[8]=hopping_frequency_no!=0?0x67:0x5A;
+			case 7:	// build packet
+				#ifdef MULTI_SYNC
+					telemetry_set_input_sync(5000);
+				#endif
+				#ifdef FAILSAFE_ENABLE
+					if(IS_FAILSAFE_VALUES_on && hopping_frequency_no==0)
+					{ //  send failsafe every 100ms
+						convert_failsafe_HK310(RUDDER,  &packet[0],&packet[1]);
+						convert_failsafe_HK310(THROTTLE,&packet[2],&packet[3]);
+						convert_failsafe_HK310(CH5,    &packet[4],&packet[5]);
+						packet[7]=0xAA;
+						packet[8]=0x5A;
+						FAILSAFE_VALUES_off;
+					}
+					else
+				#endif
+					{
+						convert_channel_HK310(RUDDER,  &packet[0],&packet[1]);
+						convert_channel_HK310(THROTTLE,&packet[2],&packet[3]);
+						convert_channel_HK310(CH5,    &packet[4],&packet[5]);
+						packet[7]=0x55;
+						packet[8]=0x67;
+					}
 				phase=8;
 				break;
 		}
@@ -203,6 +220,9 @@ uint16_t hisky_cb()
 			break;
 		case 7:
 			//Build normal packet
+			#ifdef MULTI_SYNC
+				telemetry_set_input_sync(9000);
+			#endif
 			build_ch_data();
 			break;
 		case 8:
@@ -240,7 +260,7 @@ uint16_t initHiSky()
 	hopping_frequency_no = 0;
 	binding_idx = 0;
 
-	if(IS_AUTOBIND_FLAG_on)
+	if(IS_BIND_IN_PROGRESS)
 		bind_counter = HISKY_BIND_COUNT;
 	else 
 		bind_counter = 0;

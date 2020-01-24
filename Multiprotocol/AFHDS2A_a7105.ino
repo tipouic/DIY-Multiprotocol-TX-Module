@@ -31,6 +31,7 @@ enum{
 	AFHDS2A_BIND2,
 	AFHDS2A_BIND3,
 	AFHDS2A_BIND4,
+	AFHDS2A_DATA_INIT,
 	AFHDS2A_DATA,
 };
 
@@ -41,34 +42,26 @@ static void AFHDS2A_calc_channels()
 	while (idx < AFHDS2A_NUMFREQ)
 	{
 		uint8_t i;
-		uint8_t count_1_42 = 0, count_43_85 = 0, count_86_128 = 0, count_129_168 = 0;
+		uint8_t band_no = ((((idx<<1) | ((idx>>1) & 0b01)) + rx_tx_addr[3]) & 0b11);
 		rnd = rnd * 0x0019660D + 0x3C6EF35F; // Randomization
 
-		uint8_t next_ch = ((rnd >> (idx%32)) % 0xa8) + 1;
-		// Keep the distance 2 between the channels - either odd or even
-		if (((next_ch ^ MProtocol_id) & 0x01 )== 0)
-			continue;
-		// Check that it's not duplicate and spread uniformly
+		uint8_t next_ch = band_no*41 + 1 + ((rnd >> idx) % 41); // Channel range: 1..164
+
 		for (i = 0; i < idx; i++)
 		{
-			if(hopping_frequency[i] == next_ch)
-				break;
-			if(hopping_frequency[i] <= 42)
-				count_1_42++;
-			else if (hopping_frequency[i] <= 85)
-				count_43_85++;
-			else if (hopping_frequency[i] <= 128)
-				count_86_128++;
+			// Keep the distance 5 between the channels 
+			uint8_t distance;
+			if (next_ch > hopping_frequency[i])
+				distance = next_ch - hopping_frequency[i];
 			else
-				count_129_168++;
+				distance = hopping_frequency[i] - next_ch;
+
+			if (distance < 5) break;
 		}
-		if (i != idx)
-			continue;
-		if ((next_ch <= 42 && count_1_42 < 5)
-			||(next_ch >= 43 && next_ch <= 85 && count_43_85 < 5)
-			||(next_ch >= 86 && next_ch <=128 && count_86_128 < 5)
-			||(next_ch >= 129 && count_129_168 < 5))
-			hopping_frequency[idx++] = next_ch;
+
+		if (i != idx) continue;
+
+		hopping_frequency[idx++] = next_ch;
 	}
 }
 
@@ -80,50 +73,70 @@ enum{
 	AFHDS2A_SENSOR_RX_RSSI      = 0xfc,
 	AFHDS2A_SENSOR_RX_NOISE     = 0xfb,
 	AFHDS2A_SENSOR_RX_SNR       = 0xfa,
+	AFHDS2A_SENSOR_A3_VOLTAGE   = 0x03,
 };
 
 static void AFHDS2A_update_telemetry()
 {
+	if(packet[0]==0xAA && packet[9]==0xFD)
+		return;	// ignore packets which contain the RX configuration: FD FF 32 00 01 00 FF FF FF 05 DC 05 DE FA FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+	// Read TX RSSI
+	int16_t temp=256-(A7105_ReadReg(A7105_1D_RSSI_THOLD)*8)/5;		// value from A7105 is between 8 for maximum signal strength to 160 or less
+	if(temp<0) temp=0;
+	else if(temp>255) temp=255;
+	TX_RSSI=temp;
 	// AA | TXID | rx_id | sensor id | sensor # | value 16 bit big endian | sensor id ......
-	// max 7 sensors per packet
-#ifdef AFHDS2A_FW_TELEMETRY
-    if (option & 0x80)
-	{
-        // forward telemetry to TX, skip rx and tx id to save space
-        pkt[0]= TX_RSSI;
-        for(int i=9;i < AFHDS2A_RXPACKET_SIZE; i++)
-            pkt[i-8]=packet[i];
-
-        telemetry_link=2;
-        return;
-    }
-#endif
-#ifdef AFHDS2A_HUB_TELEMETRY
-	for(uint8_t sensor=0; sensor<7; sensor++)
-	{
-        // Send FrSkyD telemetry to TX
-		uint8_t index = 9+(4*sensor);
-		switch(packet[index])
-		{
-			case AFHDS2A_SENSOR_RX_VOLTAGE:
-				//v_lipo1 = packet[index+3]<<8 | packet[index+2];
-				v_lipo1 = packet[index+2];
-				telemetry_link=1;
-				break;
-			case AFHDS2A_SENSOR_RX_ERR_RATE:
-				RX_LQI=packet[index+2];
-				break;
-			case AFHDS2A_SENSOR_RX_RSSI:
-				RX_RSSI = -packet[index+2];
-				break;
-			case 0xff:
-				return;
-			/*default:
-				// unknown sensor ID
-				break;*/
+	// AC | TXID | rx_id | sensor id | sensor # | length | bytes | sensor id ......
+	#ifdef AFHDS2A_FW_TELEMETRY
+		if (option & 0x80)
+		{// forward 0xAA and 0xAC telemetry to TX, skip rx and tx id to save space
+			packet_in[0]= TX_RSSI;
+			debug("T(%02X)=",packet[0]);
+			for(uint8_t i=9;i < AFHDS2A_RXPACKET_SIZE; i++)
+			{
+				packet_in[i-8]=packet[i];
+				debug(" %02X",packet[i]);
+			}
+			packet_in[29]=packet[0];	// 0xAA Normal telemetry, 0xAC Extended telemetry
+			telemetry_link=2;
+			debugln("");
+			return;
 		}
-	}
-#endif
+	#endif
+	#ifdef AFHDS2A_HUB_TELEMETRY
+		if(packet[0]==0xAA)
+		{ // 0xAA Normal telemetry, 0xAC Extended telemetry not decoded here
+			for(uint8_t sensor=0; sensor<7; sensor++)
+			{
+				// Send FrSkyD telemetry to TX
+				uint8_t index = 9+(4*sensor);
+				switch(packet[index])
+				{
+					case AFHDS2A_SENSOR_RX_VOLTAGE:
+						//v_lipo1 = packet[index+3]<<8 | packet[index+2];
+						v_lipo1 = packet[index+2];
+						telemetry_link=1;
+						break;
+					case AFHDS2A_SENSOR_A3_VOLTAGE:
+						v_lipo2 = (packet[index+3]<<5) | (packet[index+2]>>3);	// allows to read voltage up to 4S
+						telemetry_link=1;
+						break;
+					case AFHDS2A_SENSOR_RX_ERR_RATE:
+						if(packet[index+2]<=100)
+							RX_LQI=packet[index+2];
+						break;
+					case AFHDS2A_SENSOR_RX_RSSI:
+						RX_RSSI = -packet[index+2];
+						break;
+					case 0xff: // end of data
+						return;
+					/*default:
+						// unknown sensor ID
+						break;*/
+				}
+			}
+		}
+	#endif
 }
 #endif
 
@@ -163,6 +176,7 @@ static void AFHDS2A_build_bind_packet()
 
 static void AFHDS2A_build_packet(uint8_t type)
 {
+	uint16_t val;
 	memcpy( &packet[1], rx_tx_addr, 4);
 	memcpy( &packet[5], rx_id, 4);
 	switch(type)
@@ -171,34 +185,45 @@ static void AFHDS2A_build_packet(uint8_t type)
 			packet[0] = 0x58;
 			for(uint8_t ch=0; ch<14; ch++)
 			{
-				packet[9 +  ch*2] = Servo_data[CH_AETR[ch]]&0xFF;
-				packet[10 + ch*2] = (Servo_data[CH_AETR[ch]]>>8)&0xFF;
+				uint16_t channelMicros = convert_channel_ppm(CH_AETR[ch]);
+				packet[9 +  ch*2] = channelMicros&0xFF;
+				packet[10 + ch*2] = (channelMicros>>8)&0xFF;
 			}
+			#ifdef AFHDS2A_LQI_CH
+				// override channel with LQI
+				val = 2000 - 10*RX_LQI;
+				packet[9+((AFHDS2A_LQI_CH-1)*2)] = val & 0xff;
+				packet[10+((AFHDS2A_LQI_CH-1)*2)] = (val >> 8) & 0xff;
+			#endif
 			break;
 		case AFHDS2A_PACKET_FAILSAFE:
 			packet[0] = 0x56;
 			for(uint8_t ch=0; ch<14; ch++)
 			{
-				/*if((Model.limits[ch].flags & CH_FAILSAFE_EN))
-				{
-					packet[9 + ch*2] = Servo_data[CH_AETR[ch]] & 0xff;
-					packet[10+ ch*2] = (Servo_data[CH_AETR[ch]] >> 8) & 0xff;
-				}
-				else*/
-				{
-					packet[9 + ch*2] = 0xff;
-					packet[10+ ch*2] = 0xff;
-				}
+				#ifdef FAILSAFE_ENABLE
+					uint16_t failsafeMicros = Failsafe_data[CH_AETR[ch]];
+					if( failsafeMicros!=FAILSAFE_CHANNEL_HOLD && failsafeMicros!=FAILSAFE_CHANNEL_NOPULSES)
+					{ // Failsafe values
+						failsafeMicros = (((failsafeMicros<<2)+failsafeMicros)>>3)+860;
+						packet[9 + ch*2] =  failsafeMicros & 0xff;
+						packet[10+ ch*2] = ( failsafeMicros >> 8) & 0xff;
+					}
+					else
+				#endif
+					{ // no values
+						packet[9 + ch*2] = 0xff;
+						packet[10+ ch*2] = 0xff;
+					}
 			}
 			break;
 		case AFHDS2A_PACKET_SETTINGS:
 			packet[0] = 0xaa;
 			packet[9] = 0xfd;
 			packet[10]= 0xff;
-			uint16_t val_hz=5*(option & 0x7f)+50;			// option value should be between 0 and 70 which gives a value between 50 and 400Hz
-			if(val_hz<50 || val_hz>400) val_hz=50;	// default is 50Hz
-			packet[11]= val_hz;
-			packet[12]= val_hz >> 8;
+			val=5*(option & 0x7f)+50;	// option value should be between 0 and 70 which gives a value between 50 and 400Hz
+			if(val<50 || val>400) val=50;	// default is 50Hz
+			packet[11]= val;
+			packet[12]= val >> 8;
 			if(sub_protocol == PPM_IBUS || sub_protocol == PPM_SBUS)
 				packet[13] = 0x01;	// PPM output enabled
 			else
@@ -221,10 +246,13 @@ static void AFHDS2A_build_packet(uint8_t type)
 #define AFHDS2A_WAIT_WRITE 0x80
 uint16_t ReadAFHDS2A()
 {
-	static uint8_t packet_type = AFHDS2A_PACKET_STICKS;
-	static uint16_t packet_counter=0;
+	static uint8_t packet_type;
+	static uint16_t packet_counter;
 	uint8_t data_rx;
 	uint16_t start;
+	#ifndef FORCE_AFHDS2A_TUNING
+		A7105_AdjustLOBaseFreq(1);
+	#endif
 	switch(phase)
 	{
 		case AFHDS2A_BIND1:
@@ -237,12 +265,15 @@ uint16_t ReadAFHDS2A()
 				A7105_ReadData(AFHDS2A_RXPACKET_SIZE);
 				if(packet[0] == 0xbc && packet[9] == 0x01)
 				{
-					uint8_t temp=50+RX_num*4;
-					uint8_t i;
-					for(i=0; i<4; i++)
+					uint8_t addr;
+					if(RX_num<16)
+						addr=AFHDS2A_EEPROM_OFFSET+RX_num*4;
+					else
+						addr=AFHDS2A_EEPROM_OFFSET2+(RX_num-16)*4;
+					for(uint8_t i=0; i<4; i++)
 					{
 						rx_id[i] = packet[5+i];
-						eeprom_write_byte((EE_ADDR)(temp+i),rx_id[i]);
+						eeprom_write_byte((EE_ADDR)(addr+i),rx_id[i]);
 					}
 					phase = AFHDS2A_BIND4;
 					packet_count++;
@@ -250,6 +281,11 @@ uint16_t ReadAFHDS2A()
 				}
 			}
 			packet_count++;
+			if(IS_BIND_DONE)
+			{ // exit bind if asked to do so from the GUI
+				phase = AFHDS2A_BIND4;
+				return 3850;
+			}
 			phase |= AFHDS2A_WAIT_WRITE;
 			return 1700;
 		case AFHDS2A_BIND1|AFHDS2A_WAIT_WRITE:
@@ -275,14 +311,19 @@ uint16_t ReadAFHDS2A()
 			bind_phase++;
 			if(bind_phase>=4)
 			{ 
-				packet_counter=0;
-				packet_type = AFHDS2A_PACKET_STICKS;
 				hopping_frequency_no=1;
-				phase = AFHDS2A_DATA;
+				phase = AFHDS2A_DATA_INIT;
 				BIND_DONE;
-			}                        
+			}
 			return 3850;
-		case AFHDS2A_DATA:    
+		case AFHDS2A_DATA_INIT:
+			packet_counter=0;
+			packet_type = AFHDS2A_PACKET_STICKS;
+			phase = AFHDS2A_DATA;
+		case AFHDS2A_DATA:
+			#ifdef MULTI_SYNC
+				telemetry_set_input_sync(3850);
+			#endif
 			AFHDS2A_build_packet(packet_type);
 			if((A7105_ReadReg(A7105_00_MODE) & 0x01))		// Check if something has been received...
 				data_rx=0;
@@ -293,29 +334,47 @@ uint16_t ReadAFHDS2A()
 				hopping_frequency_no = 0;
 			if(!(packet_counter % 1313))
 				packet_type = AFHDS2A_PACKET_SETTINGS;
-			else if(!(packet_counter % 1569))
-				packet_type = AFHDS2A_PACKET_FAILSAFE;
 			else
-				packet_type = AFHDS2A_PACKET_STICKS;		// todo : check for settings changes
+			{
+				#ifdef FAILSAFE_ENABLE
+					if(!(packet_counter % 1569) && IS_FAILSAFE_VALUES_on)
+					{
+						packet_type = AFHDS2A_PACKET_FAILSAFE;
+						FAILSAFE_VALUES_off;
+					}
+					else
+				#endif
+						packet_type = AFHDS2A_PACKET_STICKS;		// todo : check for settings changes
+			}
 			if(!(A7105_ReadReg(A7105_00_MODE) & (1<<5 | 1<<6)) && data_rx==1)
 			{ // RX+FECF+CRCF Ok
 				A7105_ReadData(AFHDS2A_RXPACKET_SIZE);
-				if(packet[0] == 0xaa)
-				{
-					if(packet[9] == 0xfc)
-						packet_type=AFHDS2A_PACKET_SETTINGS;	// RX is asking for settings
-					#if defined(AFHDS2A_FW_TELEMETRY) || defined(AFHDS2A_HUB_TELEMETRY)
-					else
+				if(packet[0] == 0xAA && packet[9] == 0xFC)
+					packet_type=AFHDS2A_PACKET_SETTINGS;	// RX is asking for settings
+				else
+					if(packet[0] == 0xAA || packet[0] == 0xAC)
 					{
-						// Read TX RSSI
-						int16_t temp=256-(A7105_ReadReg(A7105_1D_RSSI_THOLD)*8)/5;		// value from A7105 is between 8 for maximum signal strength to 160 or less
-						if(temp<0) temp=0;
-						else if(temp>255) temp=255;
-						TX_RSSI=temp;
-						AFHDS2A_update_telemetry();
+						if(!memcmp(&packet[1], rx_tx_addr, 4))
+						{ // TX address validated
+							#ifdef AFHDS2A_LQI_CH
+								if(packet[0]==0xAA && packet[9]!=0xFD)
+								{// Normal telemetry packet
+									for(uint8_t sensor=0; sensor<7; sensor++)
+									{//read LQI value for RX output
+										uint8_t index = 9+(4*sensor);
+										if(packet[index]==AFHDS2A_SENSOR_RX_ERR_RATE && packet[index+2]<=100)
+										{
+											RX_LQI=packet[index+2];
+											break;
+										}
+									}
+								}
+							#endif
+							#if defined(AFHDS2A_FW_TELEMETRY) || defined(AFHDS2A_HUB_TELEMETRY)
+								AFHDS2A_update_telemetry();
+							#endif
+						}
 					}
-					#endif
-				}
 			}
 			packet_counter++;
 			phase |= AFHDS2A_WAIT_WRITE;
@@ -342,20 +401,21 @@ uint16_t initAFHDS2A()
 	AFHDS2A_calc_channels();
 	packet_count = 0;
 	bind_phase = 0;
-	if(IS_AUTOBIND_FLAG_on)
+	if(IS_BIND_IN_PROGRESS)
 		phase = AFHDS2A_BIND1;
 	else
 	{
-		phase = AFHDS2A_DATA;
+		phase = AFHDS2A_DATA_INIT;
 		//Read RX ID from EEPROM based on RX_num, RX_num must be uniq for each RX
-		uint8_t temp=50+RX_num*4;
+		uint8_t addr;
+		if(RX_num<16)
+			addr=AFHDS2A_EEPROM_OFFSET+RX_num*4;
+		else
+			addr=AFHDS2A_EEPROM_OFFSET2+(RX_num-16)*4;
 		for(uint8_t i=0;i<4;i++)
-			rx_id[i]=eeprom_read_byte((EE_ADDR)(temp+i));
+			rx_id[i]=eeprom_read_byte((EE_ADDR)(addr+i));
 	}
 	hopping_frequency_no = 0;
-#if defined(AFHDS2A_FW_TELEMETRY) || defined(AFHDS2A_HUB_TELEMETRY)
-	init_frskyd_link_telemetry();
-#endif
 	return 50000;
 }
 #endif

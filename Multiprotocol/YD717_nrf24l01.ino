@@ -87,15 +87,15 @@ static void __attribute__((unused)) yd717_send_packet(uint8_t bind)
 		// Flags
 		flags=0;
 		// Channel 5
-		if (Servo_AUX1)	flags = YD717_FLAG_FLIP;
+		if (CH5_SW)	flags = YD717_FLAG_FLIP;
 		// Channel 6
-		if (Servo_AUX2)	flags |= YD717_FLAG_LIGHT;
+		if (CH6_SW)	flags |= YD717_FLAG_LIGHT;
 		// Channel 7
-		if (Servo_AUX3)	flags |= YD717_FLAG_PICTURE;
+		if (CH7_SW)	flags |= YD717_FLAG_PICTURE;
 		// Channel 8
-		if (Servo_AUX4)	flags |= YD717_FLAG_VIDEO;
+		if (CH8_SW)	flags |= YD717_FLAG_VIDEO;
 		// Channel 9
-		if (Servo_AUX5)	flags |= YD717_FLAG_HEADLESS;
+		if (CH9_SW)	flags |= YD717_FLAG_HEADLESS;
 		packet[7] = flags;
 	}
 
@@ -154,8 +154,13 @@ static void __attribute__((unused)) yd717_init()
 
 uint16_t yd717_callback()
 {
-	if(IS_BIND_DONE_on)
+	if(IS_BIND_DONE)
+	{
+		#ifdef MULTI_SYNC
+			telemetry_set_input_sync(YD717_PACKET_PERIOD);
+		#endif
 		yd717_send_packet(0);
+	}
 	else
 	{
 		if (bind_counter == 0)

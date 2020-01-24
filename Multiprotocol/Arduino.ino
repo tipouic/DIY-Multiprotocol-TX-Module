@@ -12,12 +12,23 @@
  You should have received a copy of the GNU General Public License
  along with Multiprotocol.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef STM32_BOARD
 /************************************/
 /************************************/
 /**  Arduino replacement routines  **/
 /************************************/
 // replacement map()
+int16_t map16b( int16_t x, int16_t in_min, int16_t in_max, int16_t out_min, int16_t out_max)
+{
+//  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+	long y ;
+	x -= in_min ;
+	y = out_max - out_min ;
+	y *= x ;
+	x = y / (in_max - in_min) ;
+	return x  + out_min ;
+}
+
+#ifndef STM32_BOARD
 int16_t map( int16_t x, int16_t in_min, int16_t in_max, int16_t out_min, int16_t out_max)
 {
 //  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;

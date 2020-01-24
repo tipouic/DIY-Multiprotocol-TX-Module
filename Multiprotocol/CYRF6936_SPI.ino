@@ -98,15 +98,17 @@ void CYRF_SetTxRxMode(uint8_t mode)
 {
 	if(mode==TXRX_OFF)
 	{
-		CYRF_WriteRegister(CYRF_0F_XACT_CFG, 0x24); // 4=IDLE, 8=TX, C=RX
+		if(protocol!=PROTO_WFLY)
+			CYRF_WriteRegister(CYRF_0F_XACT_CFG, 0x24); // 4=IDLE, 8=TX, C=RX
 		CYRF_WriteRegister(CYRF_0E_GPIO_CTRL,0x00); // XOUT=0 PACTL=0
 	}
 	else
 	{
 		//Set the post tx/rx state
-		CYRF_WriteRegister(CYRF_0F_XACT_CFG, mode == TX_EN ? 0x28 : 0x2C); // 4=IDLE, 8=TX, C=RX
+		if(protocol!=PROTO_WFLY)
+			CYRF_WriteRegister(CYRF_0F_XACT_CFG, mode == TX_EN ? 0x28 : 0x2C); // 4=IDLE, 8=TX, C=RX
 		if(mode == TX_EN)
-#ifdef DSM_BLUE
+#ifdef ORANGE_TX_BLUE
 			CYRF_WriteRegister(CYRF_0E_GPIO_CTRL,0x20); // XOUT=1, PACTL=0
 		else
 			CYRF_WriteRegister(CYRF_0E_GPIO_CTRL,0x80);	// XOUT=0, PACTL=1
@@ -136,7 +138,7 @@ static void CYRF_SetPower_Value(uint8_t power)
 void CYRF_SetPower(uint8_t val)
 {
 	uint8_t power=CYRF_BIND_POWER;
-	if(IS_BIND_DONE_on)
+	if(IS_BIND_DONE)
 		#ifdef CYRF6936_ENABLE_LOW_POWER
 			power=IS_POWER_FLAG_on?CYRF_HIGH_POWER:CYRF_LOW_POWER;
 		#else
@@ -150,6 +152,17 @@ void CYRF_SetPower(uint8_t val)
 		CYRF_WriteRegister(CYRF_03_TX_CFG,power);
 		prev_power=power;
 	}
+
+	#ifdef USE_CYRF6936_CH15_TUNING
+		static uint16_t Channel15=1024;
+		if(Channel15!=Channel_data[CH15])
+		{ // adjust frequency
+			Channel15=Channel_data[CH15]+0x155;	// default value is 0x555 = 0x400 + 0x155
+			CYRF_WriteRegister(CYRF_1B_TX_OFFSET_LSB, Channel15&0xFF);
+			CYRF_WriteRegister(CYRF_1C_TX_OFFSET_MSB, Channel15>>8);
+			Channel15-=0x155;
+		}
+	#endif
 }
 
 /*
@@ -203,9 +216,9 @@ void CYRF_ReadDataPacketLen(uint8_t dpbuffer[], uint8_t length)
 static void CYRF_WriteDataPacketLen(const uint8_t dpbuffer[], uint8_t len)
 {
 	CYRF_WriteRegister(CYRF_01_TX_LENGTH, len);
-	CYRF_WriteRegister(CYRF_02_TX_CTRL, 0x40);
+	CYRF_WriteRegister(CYRF_02_TX_CTRL, 0x43);	// 0x40
 	CYRF_WriteRegisterMulti(CYRF_20_TX_BUFFER, dpbuffer, len);
-	CYRF_WriteRegister(CYRF_02_TX_CTRL, 0xBF);
+	CYRF_WriteRegister(CYRF_02_TX_CTRL, 0x83);	// 0xBF
 }
 
 void CYRF_WriteDataPacket(const uint8_t dpbuffer[])

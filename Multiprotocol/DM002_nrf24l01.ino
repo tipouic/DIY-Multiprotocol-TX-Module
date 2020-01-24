@@ -52,19 +52,19 @@ static void __attribute__((unused)) DM002_send_packet(uint8_t bind)
 	{
 		packet[0]=0x55;
 		// Throttle : 0 .. 200
-		packet[1]=convert_channel_8b_scale(THROTTLE,0,200);
+		packet[1]=convert_channel_16b_limit(THROTTLE,0,200);
 		// Other channels min 0x57, mid 0x7F, max 0xA7
-		packet[2] = convert_channel_8b_scale(RUDDER,0x57,0xA7);
-		packet[3] = convert_channel_8b_scale(AILERON, 0x57,0xA7);
-		packet[4] = convert_channel_8b_scale(ELEVATOR, 0xA7, 0x57);
+		packet[2] = convert_channel_16b_limit(RUDDER,0x57,0xA7);
+		packet[3] = convert_channel_16b_limit(AILERON, 0x57,0xA7);
+		packet[4] = convert_channel_16b_limit(ELEVATOR, 0xA7, 0x57);
 		// Features
-		packet[9] =   GET_FLAG(Servo_AUX1,DM002_FLAG_FLIP)
-					| GET_FLAG(!Servo_AUX2,DM002_FLAG_LED)
-					| GET_FLAG(Servo_AUX3,DM002_FLAG_CAMERA1)
-					| GET_FLAG(Servo_AUX4,DM002_FLAG_CAMERA2)
-					| GET_FLAG(Servo_AUX5,DM002_FLAG_HEADLESS)
-					| GET_FLAG(Servo_AUX6,DM002_FLAG_RTH)
-					| GET_FLAG(!Servo_AUX7,DM002_FLAG_HIGH);
+		packet[9] =   GET_FLAG(CH5_SW,DM002_FLAG_FLIP)
+					| GET_FLAG(!CH6_SW,DM002_FLAG_LED)
+					| GET_FLAG(CH7_SW,DM002_FLAG_CAMERA1)
+					| GET_FLAG(CH8_SW,DM002_FLAG_CAMERA2)
+					| GET_FLAG(CH9_SW,DM002_FLAG_HEADLESS)
+					| GET_FLAG(CH10_SW,DM002_FLAG_RTH)
+					| GET_FLAG(!CH11_SW,DM002_FLAG_HIGH);
 		// Packet counter
 		if(packet_count&0x03)
 		{
@@ -112,8 +112,13 @@ static void __attribute__((unused)) DM002_init()
 
 uint16_t DM002_callback()
 {
-	if(IS_BIND_DONE_on)
+	if(IS_BIND_DONE)
+	{
+		#ifdef MULTI_SYNC
+			telemetry_set_input_sync(DM002_PACKET_PERIOD);
+		#endif
 		DM002_send_packet(0);
+	}
 	else
 	{
 		if (bind_counter == 0)
@@ -132,16 +137,21 @@ uint16_t DM002_callback()
 
 static void __attribute__((unused)) DM002_initialize_txid()
 {
-	// Only 2 IDs/RFs are available, RX_NUM is used to switch between them
-	if(rx_tx_addr[3]&1)
+	// Only 3 IDs/RFs are available, RX_NUM is used to switch between them
+	switch(rx_tx_addr[3]%3)
 	{
-		memcpy(hopping_frequency,(uint8_t *)"\x34\x39\x43\x48",4);
-		memcpy(rx_tx_addr,(uint8_t *)"\x47\x93\x00\x00\xD5",5);
-	}
-	else
-	{
-		memcpy(hopping_frequency,(uint8_t *)"\x35\x39\x3B\x3D",4);
-		memcpy(rx_tx_addr,(uint8_t *)"\xAC\xA1\x00\x00\xD5",5);
+		case 0:
+			memcpy(hopping_frequency,(uint8_t *)"\x34\x39\x43\x48",4);
+			memcpy(rx_tx_addr,(uint8_t *)"\x47\x93\x00\x00\xD5",5);
+			break;
+		case 1:
+			memcpy(hopping_frequency,(uint8_t *)"\x35\x39\x3B\x3D",4);
+			memcpy(rx_tx_addr,(uint8_t *)"\xAC\xA1\x00\x00\xD5",5);
+			break;
+		case 2:
+			memcpy(hopping_frequency,(uint8_t *)"\x32\x37\x41\x46",4);
+			memcpy(rx_tx_addr,(uint8_t *)"\x92\x45\x01\x00\xD5",5);
+			break;
 	}
 }
 

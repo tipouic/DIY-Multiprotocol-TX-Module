@@ -17,8 +17,6 @@
  
 #include "iface_cyrf6936.h"
 
-#define DEVO_NUM_CHANNELS 8
-
 //For Debug
 //#define NO_SCRAMBLE
 
@@ -57,19 +55,19 @@ static void __attribute__((unused)) DEVO_add_pkt_suffix()
 {
     uint8_t bind_state;
 	#ifdef ENABLE_PPM
-	if(mode_select && option==0 && IS_BIND_DONE_on) 			//PPM mode and option not already set and bind is finished
+	if(mode_select && option==0 && IS_BIND_DONE) 			//PPM mode and option not already set and bind is finished
 	{
 		BIND_SET_INPUT;
 		BIND_SET_PULLUP;										// set pullup
 		if(IS_BIND_BUTTON_on)
 		{
-			eeprom_write_byte((EE_ADDR)(30+mode_select),0x01);	// Set fixed id mode for the current model
+			eeprom_write_byte((EE_ADDR)(MODELMODE_EEPROM_OFFSET+RX_num),0x01);	// Set fixed id mode for the current model
 			option=1;
 		}
 		BIND_SET_OUTPUT;
 	}
 	#endif //ENABLE_PPM
-    if(prev_option!=option && IS_BIND_DONE_on)
+    if(prev_option!=option && IS_BIND_DONE)
 	{
 		MProtocol_id = RX_num + MProtocol_id_master;
 		bind_counter=DEVO_BIND_COUNT;
@@ -93,22 +91,36 @@ static void __attribute__((unused)) DEVO_add_pkt_suffix()
 
 static void __attribute__((unused)) DEVO_build_beacon_pkt(uint8_t upper)
 {
-	packet[0] = (DEVO_NUM_CHANNELS << 4) | 0x07;
-	uint8_t max = 8;
+	packet[0] = (num_ch << 4) | 0x07;
+	uint8_t max = 8, offset = 0, enable = 0;
 	if (upper)
 	{
 		packet[0] += 1;
 		max = 4;
+		offset = 8;
 	}
 	for(uint8_t i = 0; i < max; i++)
-		packet[i+1] = 0;
-	packet[9] = 0;
+	{
+		#ifdef FAILSAFE_ENABLE
+			uint16_t failsafe=Failsafe_data[CH_EATR[i+offset]];
+			if(i + offset < num_ch && failsafe!=FAILSAFE_CHANNEL_HOLD && IS_FAILSAFE_VALUES_on)
+			{
+				enable |= 0x80 >> i;
+				packet[i+1] = ((failsafe*25)>>8)-100;
+			}
+			else
+		#else
+			(void)offset;
+		#endif
+				packet[i+1] = 0;
+	}
+	packet[9] = enable;
 	DEVO_add_pkt_suffix();
 }
 
 static void __attribute__((unused)) DEVO_build_bind_pkt()
 {
-	packet[0] = (DEVO_NUM_CHANNELS << 4) | 0x0a;
+	packet[0] = (num_ch << 4) | 0x0a;
 	packet[1] = bind_counter & 0xff;
 	packet[2] = (bind_counter >> 8);
 	packet[3] = *hopping_frequency_ptr;
@@ -130,11 +142,11 @@ static void __attribute__((unused)) DEVO_build_data_pkt()
 {
 	static uint8_t ch_idx=0;
 
-	packet[0] = (DEVO_NUM_CHANNELS << 4) | (0x0b + ch_idx);
+	packet[0] = (num_ch << 4) | (0x0b + ch_idx);
 	uint8_t sign = 0x0b;
 	for (uint8_t i = 0; i < 4; i++)
 	{
-		int16_t value=map(Servo_data[CH_EATR[ch_idx * 4 + i]],servo_min_100,servo_max_100,-1600,1600);//range -1600..+1600
+		int16_t value=convert_channel_16b_nolimit(CH_EATR[ch_idx * 4 + i],-1600,1600);//range -1600..+1600
 		if(value < 0)
 		{
 			value = -value;
@@ -145,7 +157,7 @@ static void __attribute__((unused)) DEVO_build_data_pkt()
 	}
 	packet[9] = sign;
 	ch_idx++;
-	if (ch_idx * 4 >= DEVO_NUM_CHANNELS)
+	if (ch_idx * 4 >= num_ch)
 		ch_idx = 0;
 	DEVO_add_pkt_suffix();
 }
@@ -244,7 +256,7 @@ static void __attribute__((unused)) DEVO_BuildPacket()
 			}
 			break;
 		case DEVO_BOUND_10:
-			DEVO_build_beacon_pkt(DEVO_NUM_CHANNELS > 8 ? failsafe_pkt : 0);
+			DEVO_build_beacon_pkt(num_ch > 8 ? failsafe_pkt : 0);
 			failsafe_pkt = failsafe_pkt ? 0 : 1;
 			DEVO_scramble_pkt();
 			phase = DEVO_BOUND_1;
@@ -260,6 +272,9 @@ uint16_t devo_callback()
 	static uint8_t txState=0;
 	if (txState == 0)
 	{
+		#ifdef MULTI_SYNC
+			telemetry_set_input_sync(2400);
+		#endif
 		txState = 1;
 		DEVO_BuildPacket();
 		CYRF_WriteDataPacket(packet);
@@ -287,6 +302,24 @@ uint16_t devo_callback()
 
 uint16_t DevoInit()
 {	
+	switch(sub_protocol)
+	{
+		case 1:
+			num_ch=10;
+			break;
+		case 2:
+			num_ch=12;
+			break;
+		case 3:
+			num_ch=6;
+			break;
+		case 4:
+			num_ch=7;
+			break;
+		default:
+			num_ch=8;
+			break;
+	}
 	DEVO_cyrf_init();
 	CYRF_GetMfgData(cyrfmfg_id);
 	CYRF_SetTxRxMode(TX_EN);
