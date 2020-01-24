@@ -332,7 +332,7 @@ const mm_protocol_definition multi_protocols[] = {
 	{PROTO_FRSKY_R9,  STR_FRSKYR9, 2, STR_SUBTYPE_FRSKYR9, OPTION_NONE  },
 #endif
 #if defined(TheDIYGuy999_NRF24L01_INO)
-	{PROTO_TheDIYGuy999,  STR_TheDIYGuy999, 2, NO_SUBTYPE, OPTION_OPTION  },
+	{PROTO_TheDIYGuy999,  STR_TheDIYGuy999, 0, NO_SUBTYPE, OPTION_OPTION  },
 #endif
 	{0x00,             nullptr,       0, nullptr,               0 }
 };
