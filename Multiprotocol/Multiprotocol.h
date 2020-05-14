@@ -19,7 +19,7 @@
 #define VERSION_MAJOR		1
 #define VERSION_MINOR		3
 #define VERSION_REVISION	0
-#define VERSION_PATCH_LEVEL	66
+#define VERSION_PATCH_LEVEL	96
 
 //******************
 // Protocols
@@ -92,6 +92,10 @@ enum PROTOCOLS
 	PROTO_XN297DUMP	= 63,	// =>NRF24L01
 	PROTO_FRSKYX2	= 64,	// =>CC2500
 	PROTO_FRSKY_R9	= 65,	// =>SX1276
+	PROTO_PROPEL	= 66,	// =>NRF24L01
+	PROTO_FRSKYL	= 67,	// =>CC2500
+	PROTO_SKYARTEC	= 68,	// =>CC2500
+	PROTO_ESKY150V2	= 69,	// =>CC2500+NRF24L01
 };
 
 enum Flysky
@@ -207,19 +211,18 @@ enum MJXQ
 	H26WH	= 5,
 	PHOENIX = 6,
 };
+enum FRSKYD
+{
+	FRSKYD	= 0,
+	DCLONE	= 1,
+};
 enum FRSKYX
 {
 	CH_16	= 0,
 	CH_8	= 1,
 	EU_16	= 2,
 	EU_8	= 3,
-};
-enum FRSKYX2
-{
-	FRSKYX2_CH_16	= 0,
-	FRSKYX2_CH_8	= 1,
-	FRSKYX2_EU_16	= 2,
-	FRSKYX2_EU_8	= 3,
+	XCLONE	= 4,
 };
 enum HONTAI
 {
@@ -329,8 +332,27 @@ enum XN297DUMP
 };
 enum FRSKY_R9
 {
-	R9_915	= 0,
-	R9_868	= 1,
+	R9_915		= 0,
+	R9_868		= 1,
+	R9_915_8CH	= 2,
+	R9_868_8CH	= 3,
+};
+enum ESKY
+{
+	ESKY_STD	= 0,
+	ESKY_ET4	= 1,
+};
+
+enum FRSKY_RX
+{
+	FRSKY_RX	= 0,
+	FRSKY_CLONE	= 1,
+};
+
+enum FRSKYL
+{
+	LR12		= 0,
+	LR12_6CH	= 1,
 };
 
 #define NONE 		0
@@ -375,8 +397,8 @@ enum MultiPacketTypes
 //***************
 //***  Tests  ***
 //***************
-#define IS_FAILSAFE_PROTOCOL	( (protocol==PROTO_HISKY && sub_protocol==HK310) || protocol==PROTO_AFHDS2A || protocol==PROTO_DEVO || protocol==PROTO_SFHSS || protocol==PROTO_WK2x01 || protocol== PROTO_HOTT || protocol==PROTO_FRSKYX )
-#define IS_CHMAP_PROTOCOL		( (protocol==PROTO_HISKY && sub_protocol==HK310) || protocol==PROTO_AFHDS2A || protocol==PROTO_DEVO || protocol==PROTO_SFHSS || protocol==PROTO_WK2x01 || protocol== PROTO_DSM || protocol==PROTO_SLT || protocol==PROTO_FLYSKY || protocol==PROTO_ESKY || protocol==PROTO_J6PRO || protocol==PROTO_PELIKAN )
+#define IS_FAILSAFE_PROTOCOL	( (protocol==PROTO_HISKY && sub_protocol==HK310) || protocol==PROTO_AFHDS2A || protocol==PROTO_DEVO || protocol==PROTO_SFHSS || protocol==PROTO_WK2x01 || protocol== PROTO_HOTT || protocol==PROTO_FRSKYX || protocol==PROTO_FRSKYX2 )
+#define IS_CHMAP_PROTOCOL		( (protocol==PROTO_HISKY && sub_protocol==HK310) || protocol==PROTO_AFHDS2A || protocol==PROTO_DEVO || protocol==PROTO_SFHSS || protocol==PROTO_WK2x01 || protocol== PROTO_DSM || protocol==PROTO_SLT || protocol==PROTO_FLYSKY || protocol==PROTO_ESKY || protocol==PROTO_J6PRO || protocol==PROTO_PELIKAN  || protocol==PROTO_SKYARTEC || protocol==PROTO_ESKY150V2 )
 
 //***************
 //***  Flags  ***
@@ -466,6 +488,11 @@ enum MultiPacketTypes
 #define DISABLE_TELEM_on		protocol_flags3 |= _BV(3)
 #define IS_DISABLE_TELEM_on		( ( protocol_flags3 & _BV(3) ) !=0 )
 #define IS_DISABLE_TELEM_off	( ( protocol_flags3 & _BV(3) ) ==0 )
+//LBT power
+#define LBT_POWER_off		protocol_flags3 &= ~_BV(7)
+#define LBT_POWER_on		protocol_flags3 |= _BV(7)
+#define IS_LBT_POWER_on		( ( protocol_flags3 & _BV(7) ) !=0 )
+#define IS_LBT_POWER_off	( ( protocol_flags3 & _BV(7) ) ==0 )
 
 
 // Failsafe
@@ -590,6 +617,7 @@ enum CC2500_POWER
 	CC2500_POWER_17 = 0xFF	//  +1dbm
 };
 #define CC2500_HIGH_POWER	CC2500_POWER_17
+#define CC2500_LBT_POWER	CC2500_POWER_14
 #define CC2500_LOW_POWER	CC2500_POWER_13
 #define CC2500_RANGE_POWER	CC2500_POWER_1
 #define CC2500_BIND_POWER	CC2500_POWER_1
@@ -643,7 +671,10 @@ enum {
 #define AFHDS2A_EEPROM_OFFSET2	250		// RX ID, 4 bytes per model id, end is 250+192=442
 #define HOTT_EEPROM_OFFSET		442		// RX ID, 5 bytes per model id, end is 320+442=762
 #define BAYANG_RX_EEPROM_OFFSET	762		// (5) TX ID + (4) channels, 9 bytes, end is 771 
-//#define CONFIG_EEPROM_OFFSET 	771		// Current configuration of the multimodule
+#define FRSKYD_CLONE_EEPROM_OFFSET	771	// (1) format + (3) TX ID + (47) channels, 51 bytes, end is 822
+#define FRSKYX_CLONE_EEPROM_OFFSET	822	// (1) format + (3) TX ID + (47) channels, 51 bytes, end is 873
+#define FRSKYX2_CLONE_EEPROM_OFFSET	873	// (1) format + (3) TX ID, 4 bytes, end is 877
+//#define CONFIG_EEPROM_OFFSET 	877		// Current configuration of the multimodule
 
 //****************************************
 //*** MULTI protocol serial definition ***
@@ -727,6 +758,10 @@ Serial: 100000 Baud 8e2      _ xxxx xxxx p --
 				XN297DUMP	63
 				FRSKYX2		64
 				FRSKY_R9	65
+				PROPEL		66
+				FRSKYL		67
+				SKYARTEC	68
+				ESKY150V2	69
    BindBit=>		0x80	1=Bind/0=No
    AutoBindBit=>	0x40	1=Yes /0=No
    RangeCheck=>		0x20	1=Yes /0=No
@@ -799,11 +834,21 @@ Serial: 100000 Baud 8e2      _ xxxx xxxx p --
 			E010		4
 			H26WH		5
 			PHOENIX		6
+		sub_protocol==FRSKYD
+			FRSKYD		0
+			DCLONE		1
 		sub_protocol==FRSKYX
 			CH_16		0
 			CH_8		1
 			EU_16		2
 			EU_8		3
+			XCLONE		4
+		sub_protocol==FRSKYX2
+			CH_16		0
+			CH_8		1
+			EU_16		2
+			EU_8		3
+			XCLONE		4
 		sub_protocol==HONTAI
 			HONTAI	0
 			JJRCX1	1
@@ -877,12 +922,20 @@ Serial: 100000 Baud 8e2      _ xxxx xxxx p --
 		sub_protocol==XK
 			X450		0
 			X420		1
-		sub_protocol==V911S
-			V911S_STD	0
-			V911S_E119	1
 		sub_protocol==FRSKY_R9
-			R9_915	0
-			R9_868	1
+			R9_915		0
+			R9_868		1
+			R9_915_8CH	2
+			R9_868_8CH	3
+		sub_protocol==ESKY
+			ESKY_STD	0
+			ESKY_ET4	1
+		sub_protocol==FRSKY_RX
+			FRSKY_RX	0
+			FRSKY_CLONE	1
+		sub_protocol==FRSKYL
+			LR12		0
+			LR12_6CH	1
 
    Power value => 0x80	0=High/1=Low
   Stream[3]   = option_protocol;
@@ -905,6 +958,10 @@ Serial: 100000 Baud 8e2      _ xxxx xxxx p --
    Disable_Telemetry	=> 0x02	0=enable, 1=disable
    Disable_CH_Mapping	=> 0x01	0=enable, 1=disable
   Stream[27.. 35] = between 0 and 9 bytes for additional protocol data
+    Protocol specific use:
+      FrSkyX and FrSkyX2: Stream[27] during bind Telem on=0x00,off=0x01 | CH1-8=0x00,CH9-16=0x02
+      FrSkyX and FrSkyX2: Stream[27..34] during normal operation unstuffed SPort data to be sent
+	  HoTT: Stream[27] 1 byte for telemetry type
 */
 /*
   Multimodule Status
@@ -987,7 +1044,8 @@ Serial: 100000 Baud 8e2      _ xxxx xxxx p --
 			OPTION_RFCHAN	8
    [19&0x0F] Number of sub protocols
    [20..27] Sub protocol name [8], not null terminated if sub prototcol len == 8
-
+   If the current protocol is invalid [12..27] are all 0x00.
+   
    more information can be added by specifing a longer length of the type, the TX will just ignore these bytes
 
   Type 0x02 Frksy S.port telemetry

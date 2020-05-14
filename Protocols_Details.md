@@ -80,18 +80,21 @@ CFlie|38|CFlie||||||||NRF24L01|
 [DM002](Protocols_Details.md#DM002---33)|33|DM002||||||||NRF24L01|XN297
 [DSM](Protocols_Details.md#DSM---6)|6|DSM2-22|DSM2-11|DSMX-22|DSMX-11|AUTO||||CYRF6936|
 [E01X](Protocols_Details.md#E01X---45)|45|E012|E015|E016H||||||NRF24L01|XN297/HS6200
-[ESky](Protocols_Details.md#ESKY---16)|16|ESky||||||||NRF24L01|
+[ESky](Protocols_Details.md#ESKY---16)|16|ESky|Std|ET4||||||NRF24L01|
 [ESky150](Protocols_Details.md#ESKY150---35)|35|ESKY150||||||||NRF24L01|
+[ESky150V2](Protocols_Details.md#ESKY150V2---69)|69|||||||||CC2500|NRF24L01
 [Flysky](Protocols_Details.md#FLYSKY---1)|1|Flysky|V9x9|V6x6|V912|CX20||||A7105|
 [Flysky AFHDS2A](Protocols_Details.md#FLYSKY-AFHDS2A---28)|28|PWM_IBUS|PPM_IBUS|PWM_SBUS|PPM_SBUS|||||A7105|
 [Flysky AFHDS2A RX](Protocols_Details.md#FLYSKY-AFHDS2A-RX---56)|56|||||||||A7105|
 [Flyzone](Protocols_Details.md#FLYZONE---53)|53|FZ410||||||||A7105|
-[FQ777](Protocols_Details.md#FQ777---23)|23|FQ777||||||||NRF24L01|SSV7241
-[FrskyD](Protocols_Details.md#FRSKYD---3)|3|FrskyD||||||||CC2500|
+[FQ777](Protocols_Details.md#FQ777---23)|23|||||||||NRF24L01|SSV7241
+[FrskyD](Protocols_Details.md#FRSKYD---3)|3|D8|Cloned|||||||CC2500|
+[FrskyL](Protocols_Details.md#FRSKYL---67)|67|LR12|LR12 6CH|||||||CC2500|
 [FrskyR9](Protocols_Details.md#FRSKYR9---65)|65|FrskyR9|R9_915|R9_868||||||SX1276|
 [FrskyV](Protocols_Details.md#FRSKYV---25)|25|FrskyV||||||||CC2500|
-[FrskyX](Protocols_Details.md#FRSKYX---15)|15|CH_16|CH_8|EU_16|EU_8|||||CC2500|
-[FrskyX_RX](Protocols_Details.md#FRSKYX_RX---55)|55|FCC|EU_LBT|||||CC2500|
+[FrskyX](Protocols_Details.md#FRSKYX---15)|15|CH_16|CH_8|EU_16|EU_8|Cloned||||CC2500|
+[FrskyX2](Protocols_Details.md#FRSKYX2---64)|64|CH_16|CH_8|EU_16|EU_8|Cloned||||CC2500|
+[Frsky_RX](Protocols_Details.md#FRSKY_RX---55)|55|RX|CloneTX|||||||CC2500|
 [FX816](Protocols_Details.md#FX816---58)|28|FX816|P38|||||||NRF24L01|
 [FY326](Protocols_Details.md#FY326---20)|20|FY326|FY319|||||||NRF24L01|
 [GD00X](Protocols_Details.md#GD00X---47)|47|GD_V1*|GD_V2*|||||||NRF24L01|
@@ -111,21 +114,24 @@ CFlie|38|CFlie||||||||NRF24L01|
 [OpenLRS](Protocols_Details.md#OpenLRS---27)|27|||||||||None|
 [Pelikan](Protocols_Details.md#Pelikan---60)|60|||||||||A7105|
 [Potensic](Protocols_Details.md#Potensic---51)|51|A20||||||||NRF24L01|XN297
+[PROPEL](Protocols_Details.md#PROPEL---66)|66|74-Z||||||||NRF24L01|
 [Q2X2](Protocols_Details.md#Q2X2---29)|29|Q222|Q242|Q282||||||NRF24L01|
 [Q303](Protocols_Details.md#Q303---31)|31|Q303|CX35|CX10D|CX10WD|||||NRF24L01|XN297
 [Redpine](Protocols_Details.md#Redpine---50)|50|FAST|SLOW|||||||NRF24L01|
 [Scanner](Protocols_Details.md#Scanner---54)|54|||||||||CC2500|
-[SFHSS](Protocols_Details.md#SFHSS---21)|21|SFHSS||||||||CC2500|
-[Shenqi](Protocols_Details.md#Shenqi---19)|19|Shenqi||||||||NRF24L01|LT8900
+[SFHSS](Protocols_Details.md#SFHSS---21)|21|||||||||CC2500|
+[Shenqi](Protocols_Details.md#Shenqi---19)|19|||||||||NRF24L01|LT8900
+[Skyartec](Protocols_Details.md#Skyartec---68)|68|||||||||CC2500|CC2500
 [SLT](Protocols_Details.md#SLT---11)|11|SLT_V1|SLT_V2|Q100|Q200|MR100||||NRF24L01|
 [SymaX](Protocols_Details.md#Symax---10)|10|SYMAX|SYMAX5C|||||||NRF24L01|
 [Tiger](Protocols_Details.md#Tiger---61)|61|Tiger||||||||NRF24L01|XN297
 [Traxxas](Protocols_Details.md#Traxxas---43)|43|RX6519||||||||CYRF6936|
 [V2x2](Protocols_Details.md#V2X2---5)|5|V2x2|JXD506|||||||NRF24L01|
 [V761](Protocols_Details.md#V761---48)|48|V761||||||||NRF24L01|XN297
-[V911S](Protocols_Details.md#V911S---46)|46|V911S*||||||||NRF24L01|XN297
+[V911S](Protocols_Details.md#V911S---46)|46|V911S*|E119*|||||||NRF24L01|XN297
 [WFly](Protocols_Details.md#WFLY---40)|40|WFLY||||||||CYRF6936|
 [WK2x01](Protocols_Details.md#WK2X01---30)|30|WK2801|WK2401|W6_5_1|W6_6_1|W6_HEL|W6_HEL_I|||CYRF6936|
+[XK](Protocols_Details.md#XK---62)|62|XK|X450|X420||||||NRF24L01|XN297
 [YD717](Protocols_Details.md#YD717---8)|8|YD717|SKYWLKR|SYMAX4|XINXUN|NIHUI||||NRF24L01|
 [ZSX](Protocols_Details.md#ZSX---52)|52|280||||||||NRF24L01|XN297
 * "*" Sub Protocols designated by * suffix are using a XN297L@250kbps which will be emulated by default with the NRF24L01. If option (freq tune) is diffrent from 0, the CC2500 module (if installed) will be used instead. Each specific sub protocol has a more detailed explanation.
@@ -332,8 +338,38 @@ CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
 ---|---|---|---|---|---|---|---
 CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
 
+### Sub_protocol D8 - *0*
+Use the internal multi module Identifier.
+
+### Sub_protocol Cloned - *1*
+Use the identifier learnt from another FrSky radio when binding with the FrSkyRX/CloneTX mode.
+
+RX number can't be used anymore and is ignored.
+
+## FRSKYL - *67*
+Models: FrSky receivers L9R. Also known as LR12.
+
+Extended limits supported
+
+Option for this protocol corresponds to fine frequency tuning. This value is different for each Module and **must** be accurate otherwise the link will not be stable.
+Check the [Frequency Tuning page](/docs/Frequency_Tuning.md) to determine it.
+
+### Sub_protocol LR12 - *0*
+Refresh rate: 36ms
+
+CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12
+---|---|---|---|---|---|---|---|---|----|----|----
+CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12
+
+### Sub_protocol LR12 6ch - *1*
+Refresh rate: 18ms
+
+CH1|CH2|CH3|CH4|CH5|CH6
+---|---|---|---|---|---
+CH1|CH2|CH3|CH4|CH5|CH6
+
 ## FRSKYX - *15*
-Models: FrSky receivers X4R, X6R and X8R. Also known as D16.
+Models: FrSky v1.xxx receivers X4R, X6R and X8R. Protocol also known as D16 v1 FCC/LBT.
 
 Extended limits and failsafe supported
 
@@ -357,25 +393,37 @@ CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
 CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
 
 ### Sub_protocol EU_16 - *2*
-EU-LBT protocol 16 channels @18ms. Note that the LBT part is not implemented, the TX transmits right away.
+EU-LBT protocol 16 channels @18ms.
 
 CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12|CH13|CH14|CH15|CH16
 ---|---|---|---|---|---|---|---|---|----|----|----|----|----|----|----
 CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12|CH13|CH14|CH15|CH16
 
 ### Sub_protocol EU_8 - *3*
-EU-LBT protocol 8 channels @9ms. Note that the LBT part is not implemented, the TX transmits right away.
+EU-LBT protocol 8 channels @9ms.
 
 CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
 ---|---|---|---|---|---|---|---
 CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
 
-## FRSKYX_RX - *55*
-The FrSkyX receiver protocol enables master/slave trainning, separate access from 2 different radios to the same model,...
+### Sub_protocol Cloned - *4*
+Use the identifier learnt from another FrSky radio when binding with the FrSkyRX/CloneTX mode.
+
+## FRSKYX2 - *64*
+Same as [FrskyX](Protocols_Details.md#FRSKYX---15) but for D16 v2.1.0 FCC/LBT.
+
+## FRSKY_RX - *55*
+
+### Sub_protocol RX - *0*
+The FrSky receiver protocol enables master/slave trainning, separate access from 2 different radios to the same model,...
+
+Auto detection of the protocol used by a TX transmitting FrSkyD/D8, FrSkyX/D16 v1.xxx FCC/LBT or FrSkyX/D16 v2.1.0 FCC/LBT at bind time.
 
 Available in OpenTX 2.3.3, Trainer Mode Master/Multi
 
 Extended limits supported
+
+For **FrSkyX, RX num must match on the master and slave**. This enables a multi student configuration for example.
 
 Option for this protocol corresponds to fine frequency tuning.
 If the value is equal to 0, the RX will auto tune otherwise it will use the indicated value.
@@ -384,19 +432,25 @@ Check the [Frequency Tuning page](/docs/Frequency_Tuning.md) to determine it.
 
 Low power: enable/disable the LNA stage on the RF component to use depending on the distance with the TX.
 
-### Sub_protocol FCC - *0*
-FCC protocol 8 or 16 channels.
+### Sub_protocol CloneTX - *1*
+This subprotocol makes a clone of a TX identifier transmitting FrSkyD/D8, FrSkyX/D16 v1.xxx FCC/LBT and FrSkyX/D16 v2.1.0 FCC/LBT.
 
-CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12|CH13|CH14|CH15|CH16
----|---|---|---|---|---|---|---|---|----|----|----|----|----|----|----
-CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12|CH13|CH14|CH15|CH16
+There are 3 slots available, 1 slot for D8 cloning, 1 slot for FrSkyX (D16v1) cloning and 1 slot for FrSkyX2 (D16v2.1.0) cloning.
+The same TX or different TXs can be used for each slot but a maximum of 1 per slot.
+If you launch the FrSky_RX/CloneTX protocol and do a bind with a TX transmitting with the D8 protocol, it will be saved in the slot D8. Same for D16v1 and D16v2.1 .
+Then the system will alow you to enable cloning as you wish for each model using the FrSkyD/X/X2 "Cloned" subprotocol. This way you can have models working with the original MPM indentifier and models which are shared by both the cloned TX and MPM.
 
-### Sub_protocol EU_LBT - *1*
-EU_LBT protocol 8 or 16 channels.
+Clone mode operation:
+- Select the FrSky_RX protocol, subprotocol CloneTX
+- Select on the TX to be cloned the protocol you want to clone the identifier from: FrSkyD/D8 or FrSkyX/D16 v1.xxx FCC/LBT or FrSkyX/D16 v2.1.0 FCC/LBT
+- Place both the TX and MPM in bind mode
+- Wait for the bind to complete
+- To use the cloned TX identifier, open a new model select the protocol you just cloned/binded and select the subprotocol "Cloned"
 
-CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12|CH13|CH14|CH15|CH16
----|---|---|---|---|---|---|---|---|----|----|----|----|----|----|----
-CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12|CH13|CH14|CH15|CH16
+Notes:
+- OpenTX 2.3.8 N184 (nightly) or later is needed to have access to the "D8Cloned" and "D16Cloned" subprotocols, D16v2.1 "Cloned" is available under FrSkyX2/Cloned.
+- For FrSkyD, only the RX number used during bind is cloned -> you can't use RX num anymore
+- For FrSkyX and FrSkyX2, RX number has to be adjusted on each model to match the original TX model
 
 ## HITEC - *39*
 Models: OPTIMA, MINIMA and MICRO receivers.
@@ -447,6 +501,9 @@ CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12
 
 Basic telemetry is available on OpenTX 2.3.3+ with RX voltage, Rx temperature, RX RSSI, RX LQI, TX RSSI and TX LQI. Lowest the TX_LQI value is best the quality link is, it's a good indicator of how well the module is tuned.
 
+## Scanner - *54*
+2.4GHz scanner accessible using the OpenTX 2.3 Spectrum Analyser tool.
+
 ## SFHSS - *21*
 Models: Futaba RXs and XK models.
 
@@ -459,8 +516,14 @@ CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
 ---|---|---|---|---|---|---|---
 A|E|T|R|CH5|CH6|CH7|CH8
 
-## Scanner - *54*
-2.4GHz scanner accessible using the OpenTX 2.3 Spectrum Analyser tool.
+## Skyartec - *68*
+
+Option for this protocol corresponds to fine frequency tuning. This value is different for each Module and **must** be accurate otherwise the link will not be stable.
+Check the [Frequency Tuning page](/docs/Frequency_Tuning.md) to determine it.
+
+CH1|CH2|CH3|CH4|CH5|CH6|CH7
+---|---|---|---|---|---|---
+A|E|T|R|CH5|CH6|CH7
 
 ***
 # CYRF6936 RF Module
@@ -474,7 +537,9 @@ CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12
 ---|---|---|---|---|---|---|---|---|---|---|---
 A|E|T|R|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12
 
-Note that the RX ouput will be EATR.
+RX output will match the Devo standard EATR independently of the input configuration AETR, RETA... unless on OpenTX 2.3.3+ you use the "Disable channel mapping" feature on the GUI.
+
+Basic telemetry is available if RX supports it: TX_RSSI, A1 and A2
 
 Bind procedure using serial:
 - With the TX off, put the binding plug in and power on the RX (RX LED slow blink), then power it down and remove the binding plug. Receiver should now be in autobind mode.
@@ -851,6 +916,12 @@ CH1|CH2|CH3|CH4|CH5|CH6
 ---|---|---|---|---|---
 A|E|T|R|GYRO|PITCH
 
+### Sub_protocol Std - *0*
+
+### Sub_protocol ET4 - *1*
+Models compatible with the ET4 transmitter like ESky Big Lama
+**Multiple IDs but only one frequency...**
+
 ## ESKY150 - *35*
 ESky protocol for small models since 2014 (150, 300, 150X, ...)
 
@@ -867,6 +938,19 @@ CH1|CH2|CH3|CH4|CH5|CH6|CH7
 A|E|T|R|FMODE|AUX6|AUX7
 
 FMODE and AUX7 have 4 positions: -100%..-50%=>0, -50%..5%=>1, 5%..50%=>2, 50%..100%=>3
+
+## ESKY150V2 - *69*
+ESky protocol for small models: 150 V2, F150 V2, Blade 70s
+
+Notes:
+ - RX output will match the eSky standard TAER independently of the input configuration AETR, RETA... unless on OpenTX 2.3.3+ you use the "Disable channel mapping" feature on the GUI.
+ - To run this protocol you need both CC2500 and NRF24L01 to be enabled for code reasons, only the CC2500 is really used.
+ 
+CH1|CH2|CH3|CH4|CH5 |CH6 |CH7 |CH8 |CH9 |CH10|CH11|CH12|CH13|CH14|CH15|CH16
+---|---|---|---|----|----|----|----|----|----|----|----|----|----|----|----
+A|E|T|R|CH5 |CH6 |CH7 |CH8 |CH9 |CH10|CH11|CH12|CH13|CH14|CH15|CH16
+
+RATE for the F150 V2 is assigned to channel 5: -100%=low, 100%=high
 
 ## FX816 - *58*
 Model: FEI XIONG FX816 P38
@@ -1095,7 +1179,7 @@ CH1|CH2|CH3|CH4|CH5
 A|E|T|R|Warp
 
 ## Potensic - *51*
-Models: Potensic A20
+Model: Potensic A20
 
 CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
 ---|---|---|---|---|---|---|---
@@ -1108,6 +1192,17 @@ EMERGENCY: Stop +100%
 MODE: Beginner -100%, Medium 0%, Advanced +100%
 
 HEADLESS: Off -100%, On +100%
+
+## PROPEL - *66*
+Model: PROPEL 74-Z Speeder Bike
+
+Autobind protocol
+
+Telemetry: RSSI is equal to TX_LQI which indicates how well the TX receives the RX (0-100%). A1 voltage should indicate the numbers of life remaining (not tested). A2 is giving the model status using a bit mask: 0x80=flying, 0x08=taking off, 0x04=landing, 0x00=landed/crashed
+
+CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12|CH13|CH14
+---|---|---|---|---|---|---|---|---|----|----|----|----|----
+A|E|T|R|LEDs|RollCW|RollCCW|Fire|Weapons|Calib|Alt_Hold|Take_off|Land|Training
 
 ## Q2X2 - *29*
 ### Sub_protocol Q222 - *0*
@@ -1175,7 +1270,7 @@ Model: Shenqiwei 1/20 Mini Motorcycle
 
 CH1|CH2|CH3|CH4
 ---|---|---|---
- | |T|R
+-|-|T|R
 
 Throttle +100%=full forward,0%=stop,-100%=full backward.
 
@@ -1306,8 +1401,6 @@ CH1|CH2|CH3|CH4|CH5
 Gyro: -100%=Beginer mode (Gyro on, yaw and pitch rate limited), 0%=Mid Mode ( Gyro on no rate limits), +100%=Mode Expert Gyro off
 
 ## V911S - *46*
-Models: WLtoys V911S, XK A110
-
 This protocol is known to be problematic because it's using the xn297L emulation with a transmission speed of 250kbps therefore it doesn't work very well with every modules, this is an hardware issue with the accuracy of the components.
 
 If the model does not respond well to inputs or hard to bind, you can try to switch the emulation from the default NRF24L01 RF component to the CC2500 by using an option value (freq tuning) different from 0. Option in this case is used for fine frequency tuning like any CC2500 protocols so check the [Frequency Tuning page](/docs/Frequency_Tuning.md).
@@ -1315,6 +1408,30 @@ If the model does not respond well to inputs or hard to bind, you can try to swi
 CH1|CH2|CH3|CH4|CH5
 ---|---|---|---|---
 A|E|T|R|CALIB
+
+### Sub_protocol V911S - *0*
+Models: WLtoys V911S, XK A110
+
+### Sub_protocol E119 - *1*
+Models: Eachine E119
+
+## XK - *62*
+
+CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10
+---|---|---|---|---|---|---|---|---|----
+A|E|T|R|Flight_modes|Take_off|Emerg stop|3D/6G|Picture|Video
+
+Flight_modes: -100%=M-Mode, 0%=6G-Mode, +100%=V-Mode. CH6-CH10 are mementary switches.
+
+### Sub_protocol X450 - *0*
+Models: XK X450 (TX=X8)
+
+This protocol is known to be problematic because it's using the xn297L emulation with a transmission speed of 250kbps therefore it doesn't work very well with every modules, this is an hardware issue with the accuracy of the components.
+
+If the model does not respond well to inputs or hard to bind, you can try to switch the emulation from the default NRF24L01 RF component to the CC2500 by using an option value (freq tuning) different from 0. Option in this case is used for fine frequency tuning like any CC2500 protocols so check the [Frequency Tuning page](/docs/Frequency_Tuning.md).
+
+### Sub_protocol X420 - *1*
+Models: XK X420/X520 (TX=X4)
 
 ## YD717 - *8*
 Autobind protocol
@@ -1337,22 +1454,40 @@ Autobind protocol
 
 CH1|CH2|CH3|CH4|CH5
 ---|---|---|---|---
-||T|R|LIGHT
+-|-|T|R|LIGHT
 
 # SX1276 RF Module
 
 ## FRSKYR9 - *65*
 Extended limits supported
 
-CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
----|---|---|---|---|---|---|---
-A|E|T|R|CH5|CH6|CH7|CH8
-
 ### Sub_protocol R9_915 - *0*
-915MHz
+915MHz, 16 channels
+
+CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12|CH13|CH14|CH15|CH16
+---|---|---|---|---|---|---|---|---|----|----|----|----|----|----|----
+CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12|CH13|CH14|CH15|CH16
 
 ### Sub_protocol R9_868 - *1*
-868MHz
+868MHz, 16 channels
+
+CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12|CH13|CH14|CH15|CH16
+---|---|---|---|---|---|---|---|---|----|----|----|----|----|----|----
+CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12|CH13|CH14|CH15|CH16
+
+### Sub_protocol R9_915_8CH - *2*
+915MHz, 8 channels
+
+CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
+---|---|---|---|---|---|---|---
+CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
+
+### Sub_protocol R9_868_8CH - *3*
+868MHz, 8 channels
+
+CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
+---|---|---|---|---|---|---|---
+CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
 
 # OpenLRS module
 

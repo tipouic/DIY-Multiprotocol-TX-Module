@@ -120,15 +120,14 @@ static void telemetry_set_input_sync(uint16_t refreshRate)
 
 static void multi_send_status()
 {
-	#ifdef MULTI_NAMES
-	if(multi_protocols_index != 0xFF)
-		multi_send_header(MULTI_TELEMETRY_STATUS, 24);
-	else
-	#endif
 	#ifdef MULTI_TELEMETRY
-		multi_send_header(MULTI_TELEMETRY_STATUS, 6);
+		#ifdef MULTI_NAMES
+			multi_send_header(MULTI_TELEMETRY_STATUS, 24);
+		#else
+			multi_send_header(MULTI_TELEMETRY_STATUS, 5);
+		#endif
 	#else
-		multi_send_header(MULTI_TELEMETRY_STATUS, 6);
+		multi_send_header(MULTI_TELEMETRY_STATUS, 5);
 	#endif
 
 	// Build flags
@@ -141,13 +140,21 @@ static void multi_send_status()
 	{
 		flags |= 0x04;
 		#ifdef MULTI_NAMES
-			if((sub_protocol&0x07) && multi_protocols_index != 0xFF)
+			if(multi_protocols_index == 0xFF)
 			{
-				uint8_t nbr=multi_protocols[multi_protocols_index].nbrSubProto;
-				if(protocol==PROTO_DSM) nbr++;	//Auto sub_protocol
-				if((sub_protocol&0x07)>=nbr)
-					flags &= ~0x04;		//Invalid sub protocol
+				if(protocol!=PROTO_SCANNER)
+					flags &= ~0x04;			//Invalid protocol
 			}
+			else if(sub_protocol&0x07)
+				{
+					uint8_t nbr=multi_protocols[multi_protocols_index].nbrSubProto;
+					if(protocol==PROTO_DSM) nbr++;	//Auto sub_protocol
+					if((sub_protocol&0x07)>=nbr)
+						flags &= ~0x04;		//Invalid sub protocol
+				}
+		#else
+			if(remote_callback==0)
+				flags &= ~0x04;			//Invalid protocol
 		#endif
 		if (IS_WAIT_BIND_on)
 			flags |= 0x10;
@@ -177,17 +184,24 @@ static void multi_send_status()
 	#endif
 	
 	#ifdef MULTI_NAMES
-		if(multi_protocols_index != 0xFF)
+		if(multi_protocols_index == 0xFF)												// selection out of list... send first available protocol
+		{
+			Serial_write(multi_protocols[0].protocol);									// begining of list
+			Serial_write(multi_protocols[0].protocol);									// begining of list
+			for(uint8_t i=0;i<16;i++)
+				Serial_write(0x00);														// everything else is invalid
+		}
+		else
 		{
 			// Protocol next/prev
 			if(multi_protocols[multi_protocols_index+1].protocol != 0)
 				Serial_write(multi_protocols[multi_protocols_index+1].protocol);		// next protocol number
 			else
-				Serial_write(protocol);													// end of list
+				Serial_write(multi_protocols[multi_protocols_index].protocol);			// end of list
 			if(multi_protocols_index>0)
 				Serial_write(multi_protocols[multi_protocols_index-1].protocol);		// prev protocol number
 			else
-				Serial_write(protocol);													// begining of list
+				Serial_write(multi_protocols[multi_protocols_index].protocol);			// begining of list
 			// Protocol
 			for(uint8_t i=0;i<7;i++)
 				Serial_write(multi_protocols[multi_protocols_index].ProtoString[i]);	// protocol name
@@ -204,9 +218,9 @@ static void multi_send_status()
 			}
 			for(;j<8;j++)
 				Serial_write(0x00);
-			// Channels function
-			//TODO
 		}
+		// Channels function
+		//TODO
 	#endif
 }
 #endif
@@ -379,7 +393,7 @@ void frsky_check_telemetry(uint8_t *packet_in,uint8_t len)
 #endif
 
 #if defined SPORT_TELEMETRY && defined FRSKYX_CC2500_INO
-	if (protocol==PROTO_FRSKYX)
+	if (protocol==PROTO_FRSKYX||protocol==PROTO_FRSKYX2)
 	{
 		/*Telemetry frames(RF) SPORT info 
 		15 bytes payload
@@ -514,7 +528,7 @@ void frsky_link_frame()
 		telemetry_link |= 2 ;		// Send hub if available
 	}
 	else
-	{//PROTO_HUBSAN, PROTO_AFHDS2A, PROTO_BAYANG, PROTO_NCC1701, PROTO_CABELL, PROTO_HITEC, PROTO_BUGS, PROTO_BUGSMINI, PROTO_FRSKYX
+	{//PROTO_HUBSAN, PROTO_AFHDS2A, PROTO_BAYANG, PROTO_NCC1701, PROTO_CABELL, PROTO_HITEC, PROTO_BUGS, PROTO_BUGSMINI, PROTO_FRSKYX, PROTO_FRSKYX2, PROTO_PROPEL, PROTO_DEVO
 		frame[1] = v_lipo1;
 		frame[2] = v_lipo2;
 		frame[3] = RX_RSSI;
@@ -856,7 +870,7 @@ void TelemetryUpdate()
 		#endif
 	#endif
 	#if defined SPORT_TELEMETRY
-		if (protocol==PROTO_FRSKYX && telemetry_link 
+		if ((protocol==PROTO_FRSKYX || protocol==PROTO_FRSKYX2) && telemetry_link 
 		#ifdef TELEMETRY_FRSKYX_TO_FRSKYD
 			&& mode_select==MODE_SERIAL
 		#endif
@@ -935,7 +949,7 @@ void TelemetryUpdate()
 	#endif
 
 		if( telemetry_link & 1 )
-		{	// FrSkyD + Hubsan + AFHDS2A + Bayang + Cabell + Hitec + Bugs + BugsMini + NCC1701
+		{	// FrSkyD + Hubsan + AFHDS2A + Bayang + Cabell + Hitec + Bugs + BugsMini + NCC1701 + PROPEL
 			// FrSkyX telemetry if in PPM
 			frsky_link_frame();
 			return;

@@ -75,7 +75,11 @@ uint32_t blink=0,last_signal=0;
 //
 uint16_t counter;
 uint8_t  channel;
-uint8_t  packet[50];
+#ifdef ESKY150V2_CC2500_INO
+	uint8_t  packet[150];
+#else
+	uint8_t  packet[50];
+#endif
 
 #define NUM_CHN 16
 // Servo data
@@ -97,7 +101,7 @@ uint16_t packet_period;
 uint8_t  packet_count;
 uint8_t  packet_sent;
 uint8_t  packet_length;
-#ifdef HOTT_CC2500_INO
+#if defined(HOTT_CC2500_INO) || defined(ESKY150V2_CC2500_INO)
 	uint8_t  hopping_frequency[75];
 #else
 	uint8_t  hopping_frequency[50];
@@ -504,6 +508,11 @@ void setup()
 				option			=	FORCE_FRSKYD_TUNING;		// Use config-defined tuning value for FrSkyD
 			else
 		#endif
+		#if defined(FORCE_FRSKYL_TUNING) && defined(FRSKYL_CC2500_INO)
+			if(protocol==PROTO_FRSKYL) 
+				option			=	FORCE_FRSKYL_TUNING;		// Use config-defined tuning value for FrSkyL
+			else
+		#endif
 		#if defined(FORCE_FRSKYV_TUNING) && defined(FRSKYV_CC2500_INO)
 			if(protocol==PROTO_FRSKYV)
 				option			=	FORCE_FRSKYV_TUNING;		// Use config-defined tuning value for FrSkyV
@@ -514,11 +523,6 @@ void setup()
 				option			=	FORCE_FRSKYX_TUNING;		// Use config-defined tuning value for FrSkyX
 			else
 		#endif 
-		#if defined(FORCE_FRSKYX2_TUNING) && defined(FRSKYX2_CC2500_INO)
-			if(protocol==PROTO_FRSKYX2)
-				option			=	FORCE_FRSKYX2_TUNING;		// Use config-defined tuning value for FrSkyX2
-			else
-		#endif 
 		#if defined(FORCE_SFHSS_TUNING) && defined(SFHSS_CC2500_INO)
 			if (protocol==PROTO_SFHSS)
 				option			=	FORCE_SFHSS_TUNING;			// Use config-defined tuning value for SFHSS
@@ -527,6 +531,11 @@ void setup()
 		#if defined(FORCE_CORONA_TUNING) && defined(CORONA_CC2500_INO)
 			if (protocol==PROTO_CORONA)
 				option			=	FORCE_CORONA_TUNING;		// Use config-defined tuning value for CORONA
+			else
+		#endif
+		#if defined(FORCE_SKYARTEC_TUNING) && defined(SKYARTEC_CC2500_INO)
+			if (protocol==PROTO_SKYARTEC)
+				option			=	FORCE_SKYARTEC_TUNING;		// Use config-defined tuning value for SKYARTEC
 			else
 		#endif
 		#if defined(FORCE_REDPINE_TUNING) && defined(REDPINE_CC2500_INO)
@@ -742,7 +751,7 @@ bool Update_All()
 	update_led_status();
 	#if defined(TELEMETRY)
 		#if ( !( defined(MULTI_TELEMETRY) || defined(MULTI_STATUS) ) )
-			if((protocol == PROTO_BAYANG_RX) || (protocol == PROTO_AFHDS2A_RX) || (protocol == PROTO_FRSKY_RX) || (protocol == PROTO_SCANNER) || (protocol==PROTO_FRSKYD) || (protocol==PROTO_BAYANG) || (protocol==PROTO_NCC1701) || (protocol==PROTO_BUGS) || (protocol==PROTO_BUGSMINI) || (protocol==PROTO_HUBSAN) || (protocol==PROTO_AFHDS2A) || (protocol==PROTO_FRSKYX) || (protocol==PROTO_DSM) || (protocol==PROTO_CABELL) || (protocol==PROTO_HITEC) || (protocol==PROTO_HOTT) || (protocol==PROTO_FRSKYX2))
+			if((protocol == PROTO_BAYANG_RX) || (protocol == PROTO_AFHDS2A_RX) || (protocol == PROTO_FRSKY_RX) || (protocol == PROTO_SCANNER) || (protocol==PROTO_FRSKYD) || (protocol==PROTO_BAYANG) || (protocol==PROTO_NCC1701) || (protocol==PROTO_BUGS) || (protocol==PROTO_BUGSMINI) || (protocol==PROTO_HUBSAN) || (protocol==PROTO_AFHDS2A) || (protocol==PROTO_FRSKYX) || (protocol==PROTO_DSM) || (protocol==PROTO_CABELL) || (protocol==PROTO_HITEC) || (protocol==PROTO_HOTT) || (protocol==PROTO_FRSKYX2) || (protocol==PROTO_PROPEL) || (protocol==PROTO_DEVO))
 		#endif
 				if(IS_DISABLE_TELEM_off)
 					TelemetryUpdate();
@@ -758,8 +767,8 @@ bool Update_All()
 		{ // Autobind is on and BIND_CH went down
 			BIND_CH_PREV_off;
 			//Request protocol to terminate bind
-			#if defined(FRSKYD_CC2500_INO) || defined(FRSKYX_CC2500_INO) || defined(FRSKYV_CC2500_INO) || defined(AFHDS2A_A7105_INO)
-			if(protocol==PROTO_FRSKYD || protocol==PROTO_FRSKYX || protocol==PROTO_FRSKYV || protocol==PROTO_AFHDS2A )
+			#if defined(FRSKYD_CC2500_INO) || defined(FRSKYL_CC2500_INO) || defined(FRSKYX_CC2500_INO) || defined(FRSKYV_CC2500_INO) || defined(AFHDS2A_A7105_INO)
+			if(protocol==PROTO_FRSKYD || protocol==PROTO_FRSKYL || protocol==PROTO_FRSKYX || protocol==PROTO_FRSKYX2 || protocol==PROTO_FRSKYV || protocol==PROTO_AFHDS2A )
 				BIND_DONE;
 			else
 			#endif
@@ -1117,6 +1126,14 @@ static void protocol_init()
 						remote_callback = ReadFrSky_2way;
 						break;
 				#endif
+				#if defined(FRSKYL_CC2500_INO)
+					case PROTO_FRSKYL:
+						PE1_off;	//antenna RF2
+						PE2_on;
+						next_callback = initFrSkyL();
+						remote_callback = ReadFrSkyL;
+						break;
+				#endif
 				#if defined(FRSKYV_CC2500_INO)
 					case PROTO_FRSKYV:
 						PE1_off;	//antenna RF2
@@ -1127,18 +1144,11 @@ static void protocol_init()
 				#endif
 				#if defined(FRSKYX_CC2500_INO)
 					case PROTO_FRSKYX:
+					case PROTO_FRSKYX2:
 						PE1_off;	//antenna RF2
 						PE2_on;
 						next_callback = initFrSkyX();
 						remote_callback = ReadFrSkyX;
-						break;
-				#endif
-				#if defined(FRSKYX2_CC2500_INO)
-					case PROTO_FRSKYX2:
-						PE1_off;	//antenna RF2
-						PE2_on;
-						next_callback = initFrSkyX2();
-						remote_callback = ReadFrSkyX2;
 						break;
 				#endif
 				#if defined(SFHSS_CC2500_INO)
@@ -1155,6 +1165,14 @@ static void protocol_init()
 						PE2_on;
 						next_callback = initCORONA();
 						remote_callback = ReadCORONA;
+						break;
+				#endif
+				#if defined(SKYARTEC_CC2500_INO)
+					case PROTO_SKYARTEC:
+						PE1_off;	//antenna RF2
+						PE2_on;
+						next_callback = initSKYARTEC();
+						remote_callback = ReadSKYARTEC;
 						break;
 				#endif
 				#if defined(REDPINE_CC2500_INO)
@@ -1195,6 +1213,14 @@ static void protocol_init()
 						PE2_on;	//antenna RF2
 						next_callback = initFrSky_Rx();
 						remote_callback = FrSky_Rx_callback;
+						break;
+				#endif
+				#if defined(ESKY150V2_CC2500_INO)
+					case PROTO_ESKY150V2:
+						PE1_off;
+						PE2_on;	//antenna RF2
+						next_callback = initESKY150V2();
+						remote_callback = ESKY150V2_callback;
 						break;
 				#endif
 			#endif
@@ -1497,6 +1523,12 @@ static void protocol_init()
 						remote_callback = XK_callback;
 						break;
 				#endif
+				#if defined(PROPEL_NRF24L01_INO)
+					case PROTO_PROPEL:
+						next_callback=initPROPEL();
+						remote_callback = PROPEL_callback;
+						break;
+				#endif
 				#if defined(XN297DUMP_NRF24L01_INO)
 					case PROTO_XN297DUMP:
 						next_callback=initXN297Dump();
@@ -1610,8 +1642,13 @@ void update_serial_data()
 
 	//Forced frequency tuning values for CC2500 protocols
 	#if defined(FORCE_FRSKYD_TUNING) && defined(FRSKYD_CC2500_INO)
-		if(protocol==PROTO_FRSKYD) 
+		if(protocol==PROTO_FRSKYD)
 			option=FORCE_FRSKYD_TUNING;			// Use config-defined tuning value for FrSkyD
+		else
+	#endif
+	#if defined(FORCE_FRSKYL_TUNING) && defined(FRSKYL_CC2500_INO)
+		if(protocol==PROTO_FRSKYL)
+			option=FORCE_FRSKYL_TUNING;			// Use config-defined tuning value for FrSkyL
 		else
 	#endif
 	#if defined(FORCE_FRSKYV_TUNING) && defined(FRSKYV_CC2500_INO)
@@ -1624,11 +1661,6 @@ void update_serial_data()
 			option=FORCE_FRSKYX_TUNING;			// Use config-defined tuning value for FrSkyX
 		else
 	#endif 
-	#if defined(FORCE_FRSKYX2_TUNING) && defined(FRSKYX2_CC2500_INO)
-		if(protocol==PROTO_FRSKYX2)
-			option=FORCE_FRSKYX2_TUNING;		// Use config-defined tuning value for FrSkyX2
-		else
-	#endif 
 	#if defined(FORCE_SFHSS_TUNING) && defined(SFHSS_CC2500_INO)
 		if (protocol==PROTO_SFHSS)
 			option=FORCE_SFHSS_TUNING;			// Use config-defined tuning value for SFHSS
@@ -1637,6 +1669,11 @@ void update_serial_data()
 	#if defined(FORCE_CORONA_TUNING) && defined(CORONA_CC2500_INO)
 		if (protocol==PROTO_CORONA)
 			option=FORCE_CORONA_TUNING;			// Use config-defined tuning value for CORONA
+		else
+	#endif
+	#if defined(FORCE_SKYARTEC_TUNING) && defined(SKYARTEC_CC2500_INO)
+		if (protocol==PROTO_SKYARTEC)
+			option=FORCE_SKYARTEC_TUNING;			// Use config-defined tuning value for SKYARTEC
 		else
 	#endif
 	#if defined(FORCE_REDPINE_TUNING) && defined(REDPINE_CC2500_INO)
@@ -1731,8 +1768,8 @@ void update_serial_data()
 		else
 			if( ((rx_ok_buff[1]&0x80)==0) && ((cur_protocol[1]&0x80)!=0) )	// Bind flag has been reset
 			{ // Request protocol to end bind
-				#if defined(FRSKYD_CC2500_INO) || defined(FRSKYX_CC2500_INO) || defined(FRSKYV_CC2500_INO) || defined(AFHDS2A_A7105_INO) || defined(FRSKYR9_SX1276_INO)
-				if(protocol==PROTO_FRSKYD || protocol==PROTO_FRSKYX || protocol==PROTO_FRSKYV || protocol==PROTO_AFHDS2A || protocol==PROTO_FRSKY_R9 )
+				#if defined(FRSKYD_CC2500_INO) || defined(FRSKYL_CC2500_INO) || defined(FRSKYX_CC2500_INO) || defined(FRSKYV_CC2500_INO) || defined(AFHDS2A_A7105_INO) || defined(FRSKYR9_SX1276_INO)
+				if(protocol==PROTO_FRSKYD || protocol==PROTO_FRSKYL || protocol==PROTO_FRSKYX || protocol==PROTO_FRSKYX2 || protocol==PROTO_FRSKYV || protocol==PROTO_AFHDS2A || protocol==PROTO_FRSKY_R9 )
 					BIND_DONE;
 				else
 				#endif
@@ -1791,7 +1828,7 @@ void update_serial_data()
 	#endif
 	if(rx_len>27)
 	{ // Data available for the current protocol
-		#if defined FRSKYX_CC2500_INO || defined FRSKYX2_CC2500_INO
+		#if defined FRSKYX_CC2500_INO
 			if((protocol==PROTO_FRSKYX || protocol==PROTO_FRSKYX2) && rx_len==28)
 			{//Protocol waiting for 1 byte during bind
 				binding_idx=rx_ok_buff[27];
@@ -1803,33 +1840,41 @@ void update_serial_data()
 				#define BYTE_STUFF	0x7D
 				#define STUFF_MASK	0x20
 				//debug("SPort_in: ");
-				SportData[SportTail]=0x7E;
-				SportTail = (SportTail+1) & (MAX_SPORT_BUFFER-1);
-				SportData[SportTail]=rx_ok_buff[27]&0x1F;
-				SportTail = (SportTail+1) & (MAX_SPORT_BUFFER-1);
+				boolean sport_valid=false;
 				for(uint8_t i=28;i<28+7;i++)
+					if(rx_ok_buff[i]!=0) sport_valid=true;	//Check that the payload is not full of 0
+				if((rx_ok_buff[27]&0x1F) > 0x1B)				//Check 1st byte validity
+					sport_valid=false;
+				if(sport_valid)
 				{
-					if(rx_ok_buff[i]==BYTE_STUFF)
-					{//stuff
-						SportData[SportTail]=BYTE_STUFF;
-						SportTail = (SportTail+1) & (MAX_SPORT_BUFFER-1);
-						SportData[SportTail]=rx_ok_buff[i]^STUFF_MASK;
-					}
-					else
-						SportData[SportTail]=rx_ok_buff[i];
-					//debug("%02X ",SportData[SportTail]);
+					SportData[SportTail]=0x7E;
 					SportTail = (SportTail+1) & (MAX_SPORT_BUFFER-1);
-				}
-				uint8_t used = SportTail;
-				if ( SportHead > SportTail )
-					used += MAX_SPORT_BUFFER - SportHead ;
-				else
-					used -= SportHead ;
-				if ( used >= MAX_SPORT_BUFFER-(MAX_SPORT_BUFFER>>2) )
-				{
-					DATA_BUFFER_LOW_on;
-					SEND_MULTI_STATUS_on;	//Send Multi Status ASAP to inform the TX
-					debugln("Low buf=%d,h=%d,t=%d",used,SportHead,SportTail);
+					SportData[SportTail]=rx_ok_buff[27]&0x1F;
+					SportTail = (SportTail+1) & (MAX_SPORT_BUFFER-1);
+					for(uint8_t i=28;i<28+7;i++)
+					{
+						if( (rx_ok_buff[i]==BYTE_STUFF) || (rx_ok_buff[i]==0x7E) )
+						{//stuff
+							SportData[SportTail]=BYTE_STUFF;
+							SportTail = (SportTail+1) & (MAX_SPORT_BUFFER-1);
+							SportData[SportTail]=rx_ok_buff[i]^STUFF_MASK;
+						}
+						else
+							SportData[SportTail]=rx_ok_buff[i];
+						//debug("%02X ",SportData[SportTail]);
+						SportTail = (SportTail+1) & (MAX_SPORT_BUFFER-1);
+					}
+					uint8_t used = SportTail;
+					if ( SportHead > SportTail )
+						used += MAX_SPORT_BUFFER - SportHead ;
+					else
+						used -= SportHead ;
+					if ( used >= MAX_SPORT_BUFFER-(MAX_SPORT_BUFFER>>2) )
+					{
+						DATA_BUFFER_LOW_on;
+						SEND_MULTI_STATUS_on;	//Send Multi Status ASAP to inform the TX
+						debugln("Low buf=%d,h=%d,t=%d",used,SportHead,SportTail);
+					}
 				}
 			}
 		#endif //SPORT_SEND
@@ -2084,7 +2129,7 @@ void pollBoot()
 #if defined(TELEMETRY)
 void PPM_Telemetry_serial_init()
 {
-	if( (protocol==PROTO_FRSKYD) || (protocol==PROTO_HUBSAN) || (protocol==PROTO_AFHDS2A) || (protocol==PROTO_BAYANG)|| (protocol==PROTO_NCC1701) || (protocol==PROTO_CABELL)  || (protocol==PROTO_HITEC) || (protocol==PROTO_BUGS) || (protocol==PROTO_BUGSMINI)
+	if( (protocol==PROTO_FRSKYD) || (protocol==PROTO_HUBSAN) || (protocol==PROTO_AFHDS2A) || (protocol==PROTO_BAYANG)|| (protocol==PROTO_NCC1701) || (protocol==PROTO_CABELL)  || (protocol==PROTO_HITEC) || (protocol==PROTO_BUGS) || (protocol==PROTO_BUGSMINI) || (protocol==PROTO_PROPEL)
 	#ifdef TELEMETRY_FRSKYX_TO_FRSKYD
 		 || (protocol==PROTO_FRSKYX) || (protocol==PROTO_FRSKYX2)
 	#endif
@@ -2148,6 +2193,51 @@ static uint32_t random_id(uint16_t address, uint8_t create_new)
 		(void)create_new;
 		return FORCE_GLOBAL_ID;
 	#endif
+}
+
+// Generate frequency hopping sequence in the range [02..77]
+static void __attribute__((unused)) calc_fh_channels(uint8_t num_ch)
+{
+	uint8_t idx = 0;
+	uint32_t rnd = MProtocol_id;
+	uint8_t max=(num_ch/3)+2;
+	
+	while (idx < num_ch)
+	{
+		uint8_t i;
+		uint8_t count_2_26 = 0, count_27_50 = 0, count_51_74 = 0;
+
+		rnd = rnd * 0x0019660D + 0x3C6EF35F; // Randomization
+		// Use least-significant byte. 73 is prime, so channels 76..77 are unused
+		uint8_t next_ch = ((rnd >> 8) % 73) + 2;
+		// Keep a distance of 5 between consecutive channels
+		if (idx !=0)
+		{
+			if(hopping_frequency[idx-1]>next_ch)
+			{
+				if(hopping_frequency[idx-1]-next_ch<5)
+					continue;
+			}
+			else
+				if(next_ch-hopping_frequency[idx-1]<5)
+					continue;
+		}
+		// Check that it's not duplicated and spread uniformly
+		for (i = 0; i < idx; i++) {
+			if(hopping_frequency[i] == next_ch)
+				break;
+			if(hopping_frequency[i] <= 26)
+				count_2_26++;
+			else if (hopping_frequency[i] <= 50)
+				count_27_50++;
+			else
+				count_51_74++;
+		}
+		if (i != idx)
+			continue;
+		if ( (next_ch <= 26 && count_2_26 < max) || (next_ch >= 27 && next_ch <= 50 && count_27_50 < max) || (next_ch >= 51 && count_51_74 < max) )
+			hopping_frequency[idx++] = next_ch;//find hopping frequency
+	}
 }
 
 /**************************/
